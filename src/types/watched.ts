@@ -1,7 +1,7 @@
 import type { ContentTypeId } from "@/types/content-type";
 import type { PlatformId } from "@/types/platform";
 
-export type WatchedTab = "movie" | "series";
+export type WatchedTab = "movie" | "series" | "anime";
 
 export type UserRating = number;
 

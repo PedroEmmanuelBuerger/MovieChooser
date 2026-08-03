@@ -5,13 +5,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useLibrary } from "@/hooks/useLibrary";
 import { EASE_OUT_EXPO, listVariants } from "@/lib/motion";
 import { RecommendationService } from "@/services/personalRecommendationService";
-import { addMovieInteraction } from "@/services/preferenceService";
+import { addMediaInteraction } from "@/services/preferenceService";
 import type { ScoredRecommendation } from "@/types/preferences";
 
 export function RecommendationPage() {
   const reduceMotion = useReducedMotion();
   const { watched } = useLibrary();
-  const [items, setItems] = useState<ScoredRecommendation[]>([]);
+  const [movies, setMovies] = useState<ScoredRecommendation[]>([]);
+  const [seriesAndAnime, setSeriesAndAnime] = useState<ScoredRecommendation[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,14 +23,15 @@ export function RecommendationPage() {
     setLoading(true);
     setError(null);
 
-    void RecommendationService.getPersonalizedMovies({
+    void RecommendationService.getPersonalizedRecommendations({
       watched: watched.items,
       signal: controller.signal,
       limit: 12,
     })
       .then((next) => {
         if (!controller.signal.aborted) {
-          setItems(next);
+          setMovies(next.movies);
+          setSeriesAndAnime(next.seriesAndAnime);
         }
       })
       .catch(() => {
@@ -46,6 +50,21 @@ export function RecommendationPage() {
     };
   }, [watched.items]);
 
+  const isEmpty = movies.length === 0 && seriesAndAnime.length === 0;
+
+  function removeItem(item: ScoredRecommendation) {
+    if (item.type === "movie") {
+      setMovies((current) => current.filter((entry) => entry.id !== item.id));
+      return;
+    }
+
+    setSeriesAndAnime((current) =>
+      current.filter(
+        (entry) => !(entry.id === item.id && entry.type === item.type),
+      ),
+    );
+  }
+
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
       <motion.header
@@ -61,8 +80,8 @@ export function RecommendationPage() {
           Recomendações
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Sugestões com base nas suas notas, gêneros favoritos e interações
-          locais — sem IA e sem backend.
+          Sugestões com base nas suas notas, gêneros favoritos e tipos de
+          conteúdo preferidos — sem IA e sem backend.
         </p>
       </motion.header>
 
@@ -78,42 +97,90 @@ export function RecommendationPage() {
             <Skeleton key={index} className="h-80 rounded-xl" />
           ))}
         </div>
-      ) : items.length === 0 ? (
+      ) : isEmpty ? (
         <div className="rounded-xl border border-dashed border-border/80 px-6 py-16 text-center">
           <p className="font-display text-lg font-semibold">
             Ainda sem recomendações personalizadas
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Avalie filmes assistidos ou pesquise títulos para alimentar o
-            algoritmo.
+            Avalie títulos assistidos ou pesquise filmes, séries e animes para
+            alimentar o algoritmo.
           </p>
         </div>
       ) : (
-        <motion.div
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          variants={listVariants}
-          initial={reduceMotion ? false : "hidden"}
-          animate="visible"
-        >
-          {items.map((item) => (
-            <PersonalRecommendationCard
-              key={item.id}
-              item={item}
-              onOpen={() => undefined}
-              onDislike={() => {
-                void addMovieInteraction({
-                  movieId: item.id,
-                  action: "DISLIKED",
-                  date: new Date().toISOString(),
-                }).then(() => {
-                  setItems((current) =>
-                    current.filter((entry) => entry.id !== item.id),
-                  );
-                });
-              }}
-            />
-          ))}
-        </motion.div>
+        <div className="space-y-10">
+          <section>
+            <h2 className="mb-4 font-display text-xl font-semibold">
+              Filmes recomendados
+            </h2>
+            {movies.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhuma sugestão de filme no momento.
+              </p>
+            ) : (
+              <motion.div
+                className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                variants={listVariants}
+                initial={reduceMotion ? false : "hidden"}
+                animate="visible"
+              >
+                {movies.map((item) => (
+                  <PersonalRecommendationCard
+                    key={`movie:${String(item.id)}`}
+                    item={item}
+                    onOpen={() => undefined}
+                    onDislike={() => {
+                      void addMediaInteraction({
+                        mediaId: item.id,
+                        type: item.type,
+                        action: "DISLIKED",
+                        date: new Date().toISOString(),
+                      }).then(() => {
+                        removeItem(item);
+                      });
+                    }}
+                  />
+                ))}
+              </motion.div>
+            )}
+          </section>
+
+          <section>
+            <h2 className="mb-4 font-display text-xl font-semibold">
+              Séries e Animes recomendados
+            </h2>
+            {seriesAndAnime.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhuma sugestão de série ou anime no momento.
+              </p>
+            ) : (
+              <motion.div
+                className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                variants={listVariants}
+                initial={reduceMotion ? false : "hidden"}
+                animate="visible"
+              >
+                {seriesAndAnime.map((item) => (
+                  <PersonalRecommendationCard
+                    key={`${item.type}:${String(item.id)}`}
+                    item={item}
+                    onOpen={() => undefined}
+                    onDislike={() => {
+                      void addMediaInteraction({
+                        mediaId: item.id,
+                        type: item.type,
+                        action: "DISLIKED",
+                        date: new Date().toISOString(),
+                      }).then(() => {
+                        removeItem(item);
+                      });
+                    }}
+                  />
+                ))}
+              </motion.div>
+            )}
+          </section>
+        </div>
       )}
     </main>
   );

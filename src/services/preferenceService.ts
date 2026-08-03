@@ -1,10 +1,14 @@
 import { LocalStorageService } from "@/services/localStorageService";
 import {
   DEFAULT_USER_PREFERENCES,
+  toMediaInteraction,
+  toMovieInteraction,
+  type MediaInteraction,
   type MovieInteraction,
   type UserPreferences,
   type WatchedMovieRecord,
 } from "@/types/preferences";
+import type { ContentTypeId } from "@/types/content-type";
 import type { WatchedItem } from "@/types/watched";
 
 const PREFERENCES_KEY = "moviechooser.userPreferences";
@@ -18,7 +22,7 @@ function hasElectronApi(): boolean {
 
 export function toWatchedMovieRecord(item: WatchedItem): WatchedMovieRecord {
   return {
-    id: `movie:${String(item.id)}`,
+    id: `${item.type}:${String(item.id)}`,
     externalId: item.id,
     title: item.title,
     posterUrl: item.poster,
@@ -56,6 +60,11 @@ export async function saveUserPreferences(
   return preferences;
 }
 
+export async function getMediaInteractions(): Promise<MediaInteraction[]> {
+  const raw = await getMovieInteractions();
+  return raw.map(toMediaInteraction);
+}
+
 export async function getMovieInteractions(): Promise<MovieInteraction[]> {
   if (hasElectronApi() && window.electronAPI?.getMovieInteractions) {
     return window.electronAPI.getMovieInteractions();
@@ -77,27 +86,49 @@ export async function saveMovieInteractions(
   return next;
 }
 
-export async function addMovieInteraction(
-  interaction: MovieInteraction,
-): Promise<MovieInteraction[]> {
-  const current = await getMovieInteractions();
+export async function addMediaInteraction(
+  interaction: MediaInteraction,
+): Promise<MediaInteraction[]> {
+  const current = await getMediaInteractions();
   const filtered = current.filter(
     (item) =>
       !(
-        item.movieId === interaction.movieId &&
+        item.mediaId === interaction.mediaId &&
+        item.type === interaction.type &&
         item.action === interaction.action
       ),
   );
-  return saveMovieInteractions([interaction, ...filtered]);
+  const saved = await saveMovieInteractions(
+    [interaction, ...filtered].map(toMovieInteraction),
+  );
+  return saved.map(toMediaInteraction);
+}
+
+export async function addMovieInteraction(
+  interaction: MovieInteraction,
+): Promise<MovieInteraction[]> {
+  const media = toMediaInteraction(interaction);
+  const next = await addMediaInteraction(media);
+  return next.map(toMovieInteraction);
+}
+
+export async function getDislikedMediaIds(
+  type?: ContentTypeId,
+): Promise<Set<number>> {
+  const interactions = await getMediaInteractions();
+  return new Set(
+    interactions
+      .filter(
+        (item) =>
+          item.action === "DISLIKED" &&
+          (type === undefined || item.type === type),
+      )
+      .map((item) => item.mediaId),
+  );
 }
 
 export async function getDislikedMovieIds(): Promise<Set<number>> {
-  const interactions = await getMovieInteractions();
-  return new Set(
-    interactions
-      .filter((item) => item.action === "DISLIKED")
-      .map((item) => item.movieId),
-  );
+  return getDislikedMediaIds("movie");
 }
 
 export function deriveGenreAverages(
@@ -106,7 +137,7 @@ export function deriveGenreAverages(
   const map = new Map<string, { sum: number; count: number }>();
 
   for (const item of watched) {
-    if (item.type !== "movie" || item.userRating === null) {
+    if (item.userRating === null) {
       continue;
     }
 
@@ -140,6 +171,31 @@ export function deriveGenreAverages(
   return averages;
 }
 
+export function derivePreferredContentTypes(
+  watched: readonly WatchedItem[],
+): ContentTypeId[] {
+  const scores = new Map<ContentTypeId, { sum: number; count: number }>();
+
+  for (const item of watched) {
+    if (item.userRating === null || item.userRating < 7) {
+      continue;
+    }
+
+    const current = scores.get(item.type) ?? { sum: 0, count: 0 };
+    current.sum += item.userRating;
+    current.count += 1;
+    scores.set(item.type, current);
+  }
+
+  return Array.from(scores.entries())
+    .sort(
+      (a, b) =>
+        b[1].sum / b[1].count - a[1].sum / a[1].count ||
+        b[1].count - a[1].count,
+    )
+    .map(([type]) => type);
+}
+
 export async function rebuildPreferencesFromWatched(
   watched: readonly WatchedItem[],
 ): Promise<UserPreferences> {
@@ -158,6 +214,7 @@ export async function rebuildPreferencesFromWatched(
     .slice(0, 5)
     .map(([genre]) => genre);
 
+  const preferredContentTypes = derivePreferredContentTypes(watched);
   const current = await getUserPreferences();
   const next: UserPreferences = {
     ...current,
@@ -166,6 +223,12 @@ export async function rebuildPreferencesFromWatched(
     dislikedGenres:
       dislikedGenres.length > 0 ? dislikedGenres : current.dislikedGenres,
   };
+
+  if (preferredContentTypes.length > 0) {
+    next.preferredContentTypes = preferredContentTypes;
+  } else if (current.preferredContentTypes) {
+    next.preferredContentTypes = current.preferredContentTypes;
+  }
 
   return saveUserPreferences(next);
 }
@@ -190,7 +253,7 @@ export function putSearchCache(query: string, results: unknown[]): void {
       cachedAt: new Date().toISOString(),
     },
     ...current,
-  ].slice(0, 20);
+  ].slice(0, 40);
   LocalStorageService.setItem(SEARCH_CACHE_KEY, next);
 }
 
@@ -215,10 +278,14 @@ export const PreferenceService = {
   getUserPreferences,
   saveUserPreferences,
   getMovieInteractions,
+  getMediaInteractions,
   saveMovieInteractions,
   addMovieInteraction,
+  addMediaInteraction,
   getDislikedMovieIds,
+  getDislikedMediaIds,
   rebuildPreferencesFromWatched,
   deriveGenreAverages,
+  derivePreferredContentTypes,
   toWatchedMovieRecord,
 } as const;

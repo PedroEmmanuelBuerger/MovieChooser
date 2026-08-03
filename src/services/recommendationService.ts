@@ -357,6 +357,7 @@ function mapTVShowResult(
   show: TVShow,
   platformId: StreamingPlatformId,
   genre: GenreSelection,
+  contentTypeId: "series" | "anime" = "series",
 ): RecommendationResult {
   if (show.posterPath === null) {
     throw new RecommendationServiceError(
@@ -373,7 +374,7 @@ function mapTVShowResult(
     description: show.overview,
     poster: buildPosterUrl(show.posterPath),
     rating: show.voteAverage,
-    type: "series",
+    type: contentTypeId,
     genre: surprise ? "Surpresa" : genre.name,
     genreId: genre.id,
     isSurpriseMode: surprise,
@@ -485,15 +486,28 @@ export async function getRandomRecommendation(
       );
     }
 
+    const tvContentType = contentTypeId === "anime" ? "anime" : "series";
+    const animeDefaults =
+      tvContentType === "anime"
+        ? {
+            originalLanguage: "ja" as const,
+            ...(effectiveGenreFilter === undefined
+              ? { genreId: 16 }
+              : { genreId: effectiveGenreFilter }),
+          }
+        : {
+            ...(effectiveGenreFilter === undefined
+              ? {}
+              : { genreId: effectiveGenreFilter }),
+          };
+
     const candidates = await fetchValidCandidates(
       (pageNumber) =>
         discoverTVShowsByWatchProvider({
           watchProviderIds,
           watchRegion: TMDB_WATCH_REGION,
           page: pageNumber,
-          ...(effectiveGenreFilter === undefined
-            ? {}
-            : { genreId: effectiveGenreFilter }),
+          ...animeDefaults,
           ...(signal ? { signal } : {}),
         }),
       isValidTVShow,
@@ -509,6 +523,7 @@ export async function getRandomRecommendation(
       ),
       platformId,
       genre,
+      tvContentType,
     );
   } catch (error) {
     if (error instanceof AxiosError && error.code === "ERR_CANCELED") {

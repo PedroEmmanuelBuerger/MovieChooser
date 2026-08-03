@@ -3,6 +3,7 @@ import { LocalStorageService } from "@/services/localStorageService";
 const LOCAL_DATA_KEYS = [
   "moviechooser.recommendationHistory",
   "moviechooser.watchedItems",
+  "moviechooser.watchedMedia",
   "moviechooser.watchedMovies",
   "moviechooser.settings",
   "moviechooser.userProfile",

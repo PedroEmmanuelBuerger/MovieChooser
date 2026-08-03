@@ -13,6 +13,7 @@ export function WatchedScreen() {
   const seriesCount = watched.items.filter(
     (item) => item.type === "series",
   ).length;
+  const animeCount = watched.items.filter((item) => item.type === "anime").length;
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-10">
@@ -39,6 +40,7 @@ export function WatchedScreen() {
           onChange={watched.setTab}
           movieCount={movieCount}
           seriesCount={seriesCount}
+          animeCount={animeCount}
         />
       </div>
 

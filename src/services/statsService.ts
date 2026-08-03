@@ -197,7 +197,9 @@ function computeInsights(
 ): string[] {
   const insights: string[] = [];
   const movies = watched.filter((item) => item.type === "movie").length;
-  const series = watched.filter((item) => item.type === "series").length;
+  const series = watched.filter(
+    (item) => item.type === "series" || item.type === "anime",
+  ).length;
   const topGenre = topGenres[0];
   const topPlatform = platforms[0];
 
@@ -288,7 +290,9 @@ export function computeLibraryStats(
     totalRecommendations: history.length,
     totalWatched: watched.length,
     watchedMovies: watched.filter((item) => item.type === "movie").length,
-    watchedSeries: watched.filter((item) => item.type === "series").length,
+    watchedSeries: watched.filter(
+      (item) => item.type === "series" || item.type === "anime",
+    ).length,
     declinedRecommendations: computeDeclinedRecommendations(history, watched),
     ratings,
     topGenres,
@@ -325,7 +329,9 @@ export function evaluateAchievements(
     previouslyUnlocked.map((item) => [item.id, item.unlockedAt]),
   );
   const movies = watched.filter((item) => item.type === "movie").length;
-  const series = watched.filter((item) => item.type === "series").length;
+  const series = watched.filter(
+    (item) => item.type === "series" || item.type === "anime",
+  ).length;
   const rated = watched.filter((item) => item.userRating !== null).length;
   const genres = new Set(
     watched.map((item) => item.genre.trim()).filter((genre) => genre.length > 0),

@@ -81,8 +81,21 @@ export const TV_GENRES: readonly GenreOption[] = [
   { id: "warPolitics", name: "War & Politics", tmdbId: TV_GENRE_TMDB_IDS.warPolitics, contentType: "series" },
 ] as const;
 
+export const ANIME_GENRES: readonly GenreOption[] = TV_GENRES.map((genre) => ({
+  ...genre,
+  contentType: "anime" as const,
+}));
+
 export function getGenresForContentType(
   contentType: ContentTypeId,
 ): readonly GenreOption[] {
-  return contentType === "movie" ? MOVIE_GENRES : TV_GENRES;
+  if (contentType === "movie") {
+    return MOVIE_GENRES;
+  }
+
+  if (contentType === "anime") {
+    return ANIME_GENRES;
+  }
+
+  return TV_GENRES;
 }

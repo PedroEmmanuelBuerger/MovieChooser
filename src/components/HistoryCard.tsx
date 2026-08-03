@@ -54,7 +54,11 @@ export function HistoryCard({
               {item.platform}
             </span>
             <span className="rounded-full border border-border bg-secondary px-2.5 py-0.5 text-[11px] text-secondary-foreground">
-              {item.type === "movie" ? "Filme" : "Série/Anime"}
+              {item.type === "movie"
+                ? "Filme"
+                : item.type === "anime"
+                  ? "Anime"
+                  : "Série"}
             </span>
             {isWatched ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">

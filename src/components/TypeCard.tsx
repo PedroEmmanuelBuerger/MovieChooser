@@ -1,10 +1,11 @@
-import { Film, type LucideIcon, TvMinimalPlay } from "lucide-react";
+import { Film, Sparkles, type LucideIcon, TvMinimalPlay } from "lucide-react";
 import { SelectionCard } from "@/components/SelectionCard";
 import type { ContentTypeId, ContentTypeOption } from "@/types/content-type";
 
 const CONTENT_TYPE_ICONS: Record<ContentTypeId, LucideIcon> = {
   movie: Film,
   series: TvMinimalPlay,
+  anime: Sparkles,
 };
 
 interface TypeCardProps {

@@ -1,66 +1,29 @@
-import { LocalStorageService } from "@/services/localStorageService";
-import {
-  addMovieInteraction,
-  rebuildPreferencesFromWatched,
-} from "@/services/preferenceService";
-import {
-  getWatchedItems,
-  markAsWatched,
-  updateWatchedRating,
-} from "@/services/storageService";
+import { MediaHistoryService } from "@/services/mediaHistoryService";
 import type { Movie, WatchedMovieEntry } from "@/types/movie";
-import type { UserRating, WatchedItem } from "@/types/watched";
-import { isValidUserRating } from "@/types/watched";
+import type { UserRating } from "@/types/watched";
 
-const WATCHED_MOVIES_MIRROR_KEY = "moviechooser.watchedMovies";
-
-function toWatchedMovieEntry(item: WatchedItem): WatchedMovieEntry {
+function toWatchedMovieEntry(entry: {
+  mediaId: number;
+  title: string;
+  posterUrl: string;
+  genres: string[];
+  watchedAt: string;
+  rating: number | null;
+}): WatchedMovieEntry {
   return {
-    movieId: item.id,
-    title: item.title,
-    posterUrl: item.poster,
-    genres: item.genre
-      .split(",")
-      .map((part) => part.trim())
-      .filter((part) => part.length > 0),
-    watchedAt: item.watchedAt,
-    rating: item.userRating,
-  };
-}
-
-function mirrorWatchedMovies(items: readonly WatchedItem[]): WatchedMovieEntry[] {
-  const movies = items
-    .filter((item) => item.type === "movie")
-    .map(toWatchedMovieEntry)
-    .sort(
-      (a, b) =>
-        new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime(),
-    );
-
-  LocalStorageService.setItem(WATCHED_MOVIES_MIRROR_KEY, movies);
-  return movies;
-}
-
-function toWatchedItemFromMovie(movie: Movie): WatchedItem {
-  return {
-    id: movie.externalId,
-    title: movie.title,
-    description: movie.overview,
-    poster: movie.posterUrl ?? "",
-    platform: "Pesquisa",
-    platformId: "search",
-    type: "movie",
-    genre: movie.genres.join(", ") || "Filme",
-    ratingTmdb: movie.ratingTmdb ?? 0,
-    userRating: null,
-    watchedAt: new Date().toISOString(),
+    movieId: entry.mediaId,
+    title: entry.title,
+    posterUrl: entry.posterUrl,
+    genres: entry.genres,
+    watchedAt: entry.watchedAt,
+    rating: entry.rating,
   };
 }
 
 export const MovieHistoryService = {
   async listWatchedMovies(): Promise<WatchedMovieEntry[]> {
-    const items = await getWatchedItems();
-    return mirrorWatchedMovies(items);
+    const items = await MediaHistoryService.listWatched("movie");
+    return items.map(toWatchedMovieEntry);
   },
 
   async getWatchedMovieIds(): Promise<Set<number>> {
@@ -71,68 +34,46 @@ export const MovieHistoryService = {
   async findWatchedMovie(
     movieId: number,
   ): Promise<WatchedMovieEntry | undefined> {
-    const movies = await this.listWatchedMovies();
-    return movies.find((item) => item.movieId === movieId);
+    const item = await MediaHistoryService.findWatched("movie", movieId);
+    return item ? toWatchedMovieEntry(item) : undefined;
   },
 
   async markAsWatched(movie: Movie): Promise<WatchedMovieEntry> {
-    const payload = toWatchedItemFromMovie(movie);
-    const result = await markAsWatched(payload);
-    const entry =
-      result.items.find(
-        (item) => item.type === "movie" && item.id === movie.externalId,
-      ) ?? payload;
-
-    await addMovieInteraction({
-      movieId: movie.externalId,
-      action: "WATCHED",
-      date: entry.watchedAt,
+    const entry = await MediaHistoryService.markAsWatched({
+      id: movie.id,
+      externalId: movie.externalId,
+      title: movie.title,
+      originalTitle: movie.originalTitle,
+      type: "movie",
+      overview: movie.overview,
+      posterUrl: movie.posterUrl,
+      releaseDate: movie.releaseDate,
+      year: movie.year,
+      genres: movie.genres,
+      actors: movie.actors,
+      director: movie.director,
+      ...(movie.ratingTmdb !== undefined ? { ratingTmdb: movie.ratingTmdb } : {}),
+      ...(movie.runtime !== undefined ? { runtime: movie.runtime } : {}),
+      ...(movie.keywords !== undefined ? { keywords: movie.keywords } : {}),
     });
 
-    const mirrored = mirrorWatchedMovies(result.items);
-    await rebuildPreferencesFromWatched(result.items);
-
-    return (
-      mirrored.find((item) => item.movieId === movie.externalId) ??
-      toWatchedMovieEntry(entry)
-    );
+    return toWatchedMovieEntry(entry);
   },
 
   async updateRating(
     movieId: number,
     rating: UserRating,
   ): Promise<WatchedMovieEntry | null> {
-    if (!isValidUserRating(rating)) {
-      throw new Error("Invalid rating");
-    }
-
-    const items = await updateWatchedRating({
-      type: "movie",
-      id: movieId,
-      userRating: rating,
-    });
-
-    await addMovieInteraction({
+    const entry = await MediaHistoryService.updateRating(
+      "movie",
       movieId,
-      action: "RATED",
-      date: new Date().toISOString(),
       rating,
-    });
-
-    const mirrored = mirrorWatchedMovies(items);
-    await rebuildPreferencesFromWatched(items);
-    return mirrored.find((item) => item.movieId === movieId) ?? null;
+    );
+    return entry ? toWatchedMovieEntry(entry) : null;
   },
 
   async removeRating(movieId: number): Promise<WatchedMovieEntry | null> {
-    const items = await updateWatchedRating({
-      type: "movie",
-      id: movieId,
-      userRating: null,
-    });
-
-    const mirrored = mirrorWatchedMovies(items);
-    await rebuildPreferencesFromWatched(items);
-    return mirrored.find((item) => item.movieId === movieId) ?? null;
+    const entry = await MediaHistoryService.removeRating("movie", movieId);
+    return entry ? toWatchedMovieEntry(entry) : null;
   },
 };

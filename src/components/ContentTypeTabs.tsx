@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { Clapperboard, Tv } from "lucide-react";
+import { Clapperboard, Sparkles, Tv } from "lucide-react";
 import { EASE_OUT_EXPO } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { HistoryTab } from "@/types/history";
@@ -9,6 +9,7 @@ interface ContentTypeTabsProps {
   onChange: (tab: HistoryTab) => void;
   movieCount?: number;
   seriesCount?: number;
+  animeCount?: number;
 }
 
 export function ContentTypeTabs({
@@ -16,6 +17,7 @@ export function ContentTypeTabs({
   onChange,
   movieCount,
   seriesCount,
+  animeCount,
 }: ContentTypeTabsProps) {
   const reduceMotion = useReducedMotion();
 
@@ -33,15 +35,21 @@ export function ContentTypeTabs({
     },
     {
       id: "series",
-      label: "Séries e Animes",
+      label: "Séries",
       icon: Tv,
       ...(seriesCount !== undefined ? { count: seriesCount } : {}),
+    },
+    {
+      id: "anime",
+      label: "Animes",
+      icon: Sparkles,
+      ...(animeCount !== undefined ? { count: animeCount } : {}),
     },
   ];
 
   return (
     <div
-      className="relative inline-flex rounded-xl border border-border/80 bg-secondary/40 p-1"
+      className="relative inline-flex flex-wrap rounded-xl border border-border/80 bg-secondary/40 p-1"
       role="tablist"
       aria-label="Filtrar por tipo"
     >

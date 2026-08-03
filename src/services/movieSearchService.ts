@@ -1,193 +1,75 @@
-import { MOVIE_GENRES } from "@/data/genres";
-import {
-  getMovieCredits,
-  getMovieDetails,
-  getMovieKeywords,
-  searchMovies,
-} from "@/services/tmdb";
-import {
-  putSearchCache,
-  readSearchCache,
-} from "@/services/preferenceService";
-import { createMovieId, type Movie } from "@/types/movie";
+import { MediaSearchService } from "@/services/mediaSearchService";
+import type { Movie } from "@/types/movie";
 import type {
   SearchMovieDetails,
   SearchMovieResult,
 } from "@/types/movie-search";
 
-const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500";
-
-function genreNameByTmdbId(id: number): string {
-  const match = MOVIE_GENRES.find((genre) => genre.tmdbId === id);
-  return match?.name ?? "Outros";
-}
-
-function yearFromDate(value: string): string {
-  if (!value || value.length < 4) {
-    return "—";
-  }
-
-  return value.slice(0, 4);
-}
-
-function posterUrl(path: string | null): string | null {
-  if (!path) {
-    return null;
-  }
-
-  return `${TMDB_POSTER_BASE_URL}${path}`;
-}
-
-function mapSearchResult(
-  item: Awaited<ReturnType<typeof searchMovies>>["results"][number],
-): SearchMovieResult {
-  const genreNames = item.genreIds.map(genreNameByTmdbId);
-
-  return {
-    id: item.id,
-    title: item.title,
-    originalTitle: item.originalTitle,
-    year: yearFromDate(item.releaseDate),
-    poster: posterUrl(item.posterPath),
-    overview: item.overview,
-    ratingTmdb: item.voteAverage,
-    genreIds: item.genreIds,
-    genreNames,
-  };
-}
-
-function dedupeById(items: SearchMovieResult[]): SearchMovieResult[] {
-  const seen = new Set<number>();
-  const unique: SearchMovieResult[] = [];
-
-  for (const item of items) {
-    if (seen.has(item.id)) {
-      continue;
-    }
-
-    seen.add(item.id);
-    unique.push(item);
-  }
-
-  return unique;
-}
-
-function toMovieFromResult(movie: SearchMovieResult): Movie {
-  return {
-    id: createMovieId(movie.id),
-    externalId: movie.id,
-    title: movie.title,
-    originalTitle: movie.originalTitle,
-    overview: movie.overview,
-    posterUrl: movie.poster,
-    releaseDate: "",
-    year: movie.year,
-    genres: movie.genreNames,
-    actors: [],
-    director: [],
-    ratingTmdb: movie.ratingTmdb,
-  };
-}
-
-function toMovieFromDetails(movie: SearchMovieDetails): Movie {
-  return {
-    id: createMovieId(movie.id),
-    externalId: movie.id,
-    title: movie.title,
-    originalTitle: movie.originalTitle,
-    overview: movie.overview,
-    posterUrl: movie.poster,
-    releaseDate: movie.releaseDate,
-    year: movie.year,
-    genres: movie.genreNames,
-    actors: movie.cast.map((person) => ({
-      id: person.id,
-      name: person.name,
-    })),
-    director: movie.directors.map((person) => ({
-      id: person.id,
-      name: person.name,
-      ...(person.job ? { job: person.job } : {}),
-    })),
-    ratingTmdb: movie.ratingTmdb,
-    runtime: movie.runtime,
-    keywords: movie.keywords,
-  };
-}
-
 export const MovieSearchService = {
-  toMovie(movie: SearchMovieResult | SearchMovieDetails): Movie {
-    if ("cast" in movie) {
-      return toMovieFromDetails(movie);
-    }
+  toMovie(
+    media: SearchMovieResult | SearchMovieDetails,
+  ): Movie {
+    const mapped = MediaSearchService.toMedia({
+      ...media,
+      type: "movie",
+      genreNames: "genreNames" in media ? media.genreNames : [],
+      genreIds: "genreIds" in media ? media.genreIds : [],
+    } as Parameters<typeof MediaSearchService.toMedia>[0]);
 
-    return toMovieFromResult(movie);
+    return {
+      id: mapped.id,
+      externalId: mapped.externalId,
+      title: mapped.title,
+      originalTitle: mapped.originalTitle,
+      overview: mapped.overview,
+      posterUrl: mapped.posterUrl,
+      releaseDate: mapped.releaseDate,
+      year: mapped.year,
+      genres: mapped.genres,
+      actors: mapped.actors ?? [],
+      director: mapped.director ?? [],
+      ...(mapped.ratingTmdb !== undefined ? { ratingTmdb: mapped.ratingTmdb } : {}),
+      ...(mapped.runtime !== undefined ? { runtime: mapped.runtime } : {}),
+      ...(mapped.keywords !== undefined ? { keywords: mapped.keywords } : {}),
+    };
   },
 
-  async search(
-    query: string,
-    signal?: AbortSignal,
-  ): Promise<SearchMovieResult[]> {
-    const trimmed = query.trim();
-
-    if (trimmed.length < 2) {
-      return [];
-    }
-
-    const cached = readSearchCache(trimmed);
-
-    if (cached) {
-      return cached as SearchMovieResult[];
-    }
-
-    const [ptResults, enResults] = await Promise.all([
-      searchMovies(trimmed, {
-        language: "pt-BR",
-        ...(signal ? { signal } : {}),
-      }),
-      searchMovies(trimmed, {
-        language: "en-US",
-        ...(signal ? { signal } : {}),
-      }),
-    ]);
-
-    const merged = dedupeById([
-      ...ptResults.results.map(mapSearchResult),
-      ...enResults.results.map(mapSearchResult),
-    ]).slice(0, 24);
-
-    putSearchCache(trimmed, merged);
-    return merged;
+  async search(query: string, signal?: AbortSignal): Promise<SearchMovieResult[]> {
+    const results = await MediaSearchService.search("movie", query, signal);
+    return results.map((item) => ({
+      id: item.id,
+      title: item.title,
+      originalTitle: item.originalTitle,
+      year: item.year,
+      poster: item.poster,
+      overview: item.overview,
+      ratingTmdb: item.ratingTmdb,
+      genreIds: item.genreIds,
+      genreNames: item.genreNames,
+    }));
   },
 
   async getDetails(
     movieId: number,
     signal?: AbortSignal,
   ): Promise<SearchMovieDetails> {
-    const [details, credits, keywords] = await Promise.all([
-      getMovieDetails(movieId, signal),
-      getMovieCredits(movieId, signal),
-      getMovieKeywords(movieId, signal),
-    ]);
-
-    const genreNames = details.genreIds.map(genreNameByTmdbId);
-
+    const details = await MediaSearchService.getDetails("movie", movieId, signal);
     return {
       id: details.id,
       title: details.title,
-      originalTitle: details.title,
-      year: yearFromDate(details.releaseDate),
-      poster: posterUrl(details.posterPath),
+      originalTitle: details.originalTitle,
+      year: details.year,
+      poster: details.poster,
       overview: details.overview,
-      description: details.overview,
-      releaseDate: details.releaseDate,
-      ratingTmdb: details.voteAverage,
+      ratingTmdb: details.ratingTmdb,
       genreIds: details.genreIds,
-      genreNames,
+      genreNames: details.genreNames,
+      description: details.description,
+      releaseDate: details.releaseDate,
       runtime: details.runtime,
-      directors: credits.directors,
-      cast: credits.cast,
-      keywords,
+      directors: details.directors,
+      cast: details.cast,
+      keywords: details.keywords,
     };
   },
 };

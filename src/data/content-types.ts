@@ -8,7 +8,12 @@ export const CONTENT_TYPE_OPTIONS: readonly ContentTypeOption[] = [
   },
   {
     id: "series",
-    name: "Série/Anime",
+    name: "Série",
     description: "Episódios para acompanhar no seu ritmo",
+  },
+  {
+    id: "anime",
+    name: "Anime",
+    description: "Animações japonesas e títulos de anime",
   },
 ] as const;

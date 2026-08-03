@@ -293,6 +293,7 @@ export interface DiscoverByWatchProviderParams {
   watchRegion: string;
   page?: number;
   genreId?: number;
+  originalLanguage?: string;
   signal?: AbortSignal;
 }
 
@@ -342,6 +343,9 @@ export async function discoverTVShowsByWatchProvider(
           ...(params.genreId === undefined
             ? {}
             : { with_genres: params.genreId }),
+          ...(params.originalLanguage
+            ? { with_original_language: params.originalLanguage }
+            : {}),
         },
       },
     );
@@ -358,7 +362,23 @@ interface TmdbMovieDetailsDto extends TmdbMovieDto {
 
 interface TmdbTvDetailsDto extends TmdbTvShowDto {
   number_of_episodes: number | null;
+  number_of_seasons: number | null;
   episode_run_time: number[];
+  networks?: Array<{ id: number; name: string }>;
+  production_companies?: Array<{ id: number; name: string }>;
+}
+
+export function isLikelyAnime(input: {
+  genreIds: readonly number[];
+  originalLanguage: string;
+  originCountry?: readonly string[];
+}): boolean {
+  const hasAnimation = input.genreIds.includes(16);
+  const isJapanese =
+    input.originalLanguage === "ja" ||
+    (input.originCountry?.includes("JP") ?? false);
+
+  return hasAnimation || isJapanese;
 }
 
 export async function getMovieDetails(
@@ -394,10 +414,17 @@ export async function getTVShowDetails(
       },
     );
 
+    const studio =
+      data.networks?.[0]?.name ??
+      data.production_companies?.[0]?.name ??
+      null;
+
     return {
       ...mapTvShow(data),
       numberOfEpisodes: data.number_of_episodes,
+      numberOfSeasons: data.number_of_seasons,
       episodeRunTime: data.episode_run_time,
+      studio,
     };
   } catch (error) {
     rethrowOrWrap(error);
@@ -469,6 +496,64 @@ export async function searchMovies(
   }
 }
 
+interface TmdbSearchTvDto {
+  id: number;
+  name: string;
+  original_name: string;
+  overview: string;
+  poster_path: string | null;
+  first_air_date: string;
+  vote_average: number;
+  genre_ids: number[];
+  original_language: string;
+  origin_country: string[];
+}
+
+export async function searchTVShows(
+  query: string,
+  options?: { page?: number; signal?: AbortSignal; language?: string },
+): Promise<TmdbPaginatedResponse<TVShow & { originalTitle: string }>> {
+  try {
+    const { data } = await tmdbClient.get<TmdbPaginatedDto<TmdbSearchTvDto>>(
+      "/search/tv",
+      {
+        ...(options?.signal ? { signal: options.signal } : {}),
+        params: {
+          query,
+          page: options?.page ?? 1,
+          include_adult: false,
+          ...(options?.language ? { language: options.language } : {}),
+        },
+      },
+    );
+
+    return {
+      page: data.page,
+      totalPages: data.total_pages,
+      totalResults: data.total_results,
+      results: data.results.map((item) => ({
+        ...mapTvShow({
+          id: item.id,
+          name: item.name,
+          overview: item.overview,
+          poster_path: item.poster_path,
+          backdrop_path: null,
+          first_air_date: item.first_air_date,
+          vote_average: item.vote_average,
+          vote_count: 0,
+          popularity: 0,
+          genre_ids: item.genre_ids,
+          original_language: item.original_language,
+          origin_country: item.origin_country,
+        }),
+        originalTitle: item.original_name,
+      })),
+    };
+  } catch (error) {
+    rethrowOrWrap(error);
+  }
+}
+
 export async function getMovieCredits(
   movieId: number,
   signal?: AbortSignal,
@@ -495,6 +580,46 @@ export async function getMovieCredits(
           name: person.name,
           job: person.job,
         })),
+    };
+  } catch (error) {
+    rethrowOrWrap(error);
+  }
+}
+
+export async function getTVShowCredits(
+  showId: number,
+  signal?: AbortSignal,
+): Promise<{
+  cast: Array<{ id: number; name: string }>;
+  directors: Array<{ id: number; name: string; job: string }>;
+}> {
+  try {
+    const { data } = await tmdbClient.get<TmdbCreditsDto>(
+      `/tv/${String(showId)}/credits`,
+      {
+        ...(signal ? { signal } : {}),
+      },
+    );
+
+    const directors = data.crew
+      .filter(
+        (person) =>
+          person.job === "Director" ||
+          person.job === "Series Director" ||
+          person.job === "Executive Producer",
+      )
+      .slice(0, 4)
+      .map((person) => ({
+        id: person.id,
+        name: person.name,
+        job: person.job,
+      }));
+
+    return {
+      cast: data.cast
+        .slice(0, 8)
+        .map((person) => ({ id: person.id, name: person.name })),
+      directors,
     };
   } catch (error) {
     rethrowOrWrap(error);

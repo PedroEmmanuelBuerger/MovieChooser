@@ -33,7 +33,7 @@ const NAV_ITEMS: {
   icon: LucideIcon;
 }[] = [
   { id: "discover", label: "Randomizador", icon: Dices },
-  { id: "search", label: "Pesquisar Filmes", icon: Search },
+  { id: "search", label: "Pesquisar", icon: Search },
   { id: "smart", label: "Recomendações", icon: Sparkles },
   { id: "history", label: "Histórico", icon: History },
   { id: "watched", label: "Assistidos", icon: CheckCircle2 },

@@ -20,6 +20,7 @@ export function HistoryScreen() {
   const seriesCount = history.items.filter(
     (item) => item.type === "series",
   ).length;
+  const animeCount = history.items.filter((item) => item.type === "anime").length;
 
   async function handleMarkWatched(item: HistoryItem) {
     const key = `${item.type}:${String(item.id)}:${item.recommendedAt}`;
@@ -59,6 +60,7 @@ export function HistoryScreen() {
           onChange={history.setTab}
           movieCount={movieCount}
           seriesCount={seriesCount}
+          animeCount={animeCount}
         />
       </div>
 

@@ -317,7 +317,7 @@ export function ProfileScreen() {
               />
               <StatCard label="Assistidos" value={stats.totalWatched} />
               <StatCard label="Filmes" value={stats.watchedMovies} />
-              <StatCard label="Séries/Animes" value={stats.watchedSeries} />
+              <StatCard label="Séries e Animes" value={stats.watchedSeries} />
               <StatCard
                 label="Não assistidos do histórico"
                 value={stats.declinedRecommendations}

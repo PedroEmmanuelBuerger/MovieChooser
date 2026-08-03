@@ -1,7 +1,7 @@
 import type { ContentTypeId } from "@/types/content-type";
 import type { StreamingPlatformId } from "@/types/platform";
 
-export type HistoryTab = "movie" | "series";
+export type HistoryTab = "movie" | "series" | "anime";
 
 export interface HistoryItem {
   id: number;
@@ -21,7 +21,7 @@ export function isHistoryMovie(item: HistoryItem): boolean {
 }
 
 export function isHistorySeries(item: HistoryItem): boolean {
-  return item.type === "series";
+  return item.type === "series" || item.type === "anime";
 }
 
 export function filterHistoryByTab(

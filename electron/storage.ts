@@ -1,7 +1,7 @@
 import Store from "electron-store";
 import { ipcMain } from "electron";
 
-export type ContentTypeId = "movie" | "series";
+export type ContentTypeId = "movie" | "series" | "anime";
 
 export type PlatformId =
   | "netflix"
@@ -52,10 +52,12 @@ export interface UserPreferences {
   dislikedGenres: string[];
   favoriteActors: string[];
   favoriteDirectors: string[];
+  preferredContentTypes?: ContentTypeId[];
 }
 
 export interface MovieInteraction {
   movieId: number;
+  type?: ContentTypeId;
   action: "WATCHED" | "RATED" | "DISLIKED";
   date: string;
   rating?: number;
@@ -114,6 +116,7 @@ const DEFAULT_USER_PREFERENCES: UserPreferences = {
   dislikedGenres: [],
   favoriteActors: [],
   favoriteDirectors: [],
+  preferredContentTypes: [],
 };
 
 const store = new Store<StoreSchema>({

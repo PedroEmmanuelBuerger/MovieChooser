@@ -34,7 +34,9 @@ export interface MovieDetails extends Movie {
 
 export interface TVShowDetails extends TVShow {
   numberOfEpisodes: number | null;
+  numberOfSeasons: number | null;
   episodeRunTime: number[];
+  studio: string | null;
 }
 
 export interface TmdbPaginatedResponse<T> {

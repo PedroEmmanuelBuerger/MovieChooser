@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { listItemVariants } from "@/lib/motion";
+import { getContentTypeLabel } from "@/types/content-type";
 import type { ScoredRecommendation } from "@/types/preferences";
 
 interface RecommendationCardProps {
@@ -33,6 +34,9 @@ export function PersonalRecommendationCard({
           />
         </div>
         <div className="space-y-2 p-3">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            {getContentTypeLabel(item.type)}
+          </p>
           <h3 className="line-clamp-2 font-display text-base font-semibold">
             {item.title}{" "}
             <span className="text-sm font-normal text-muted-foreground">
@@ -40,7 +44,10 @@ export function PersonalRecommendationCard({
             </span>
           </h3>
           <p className="text-xs text-muted-foreground">
-            {item.genres.slice(0, 2).join(" · ") || "Filme"}
+            {item.genres.slice(0, 2).join(" · ") || getContentTypeLabel(item.type)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Nota TMDB: {item.ratingTmdb.toFixed(1)}
           </p>
           <p className="font-display text-2xl font-bold text-primary">
             {String(item.compatibility)}%

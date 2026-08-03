@@ -3,14 +3,14 @@ import { motion, useReducedMotion } from "framer-motion";
 import { BackButton } from "@/components/BackButton";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { WatchedSuccessToast } from "@/components/WatchedSuccessToast";
-import { MOVIE_GENRES } from "@/data/genres";
+import { MOVIE_GENRES, TV_GENRES, ANIME_GENRES } from "@/data/genres";
 import { useLibrary } from "@/hooks/useLibrary";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { useSettingsContext } from "@/hooks/useSettingsContext";
 import { EASE_OUT_EXPO } from "@/lib/motion";
 import {
-  addMovieInteraction,
-  getDislikedMovieIds,
+  addMediaInteraction,
+  getDislikedMediaIds,
   getUserPreferences,
   rebuildPreferencesFromWatched,
 } from "@/services/preferenceService";
@@ -56,7 +56,7 @@ export function RecommendationScreen({
 
     void (async () => {
       const [disliked, preferences] = await Promise.all([
-        getDislikedMovieIds(),
+        getDislikedMediaIds(contentType.id),
         getUserPreferences(),
       ]);
 
@@ -66,14 +66,20 @@ export function RecommendationScreen({
 
       setDislikedIds(disliked);
       const favorite = preferences.favoriteGenres[0];
-      const match = MOVIE_GENRES.find((genre) => genre.name === favorite);
+      const genreList =
+        contentType.id === "movie"
+          ? MOVIE_GENRES
+          : contentType.id === "anime"
+            ? ANIME_GENRES
+            : TV_GENRES;
+      const match = genreList.find((genre) => genre.name === favorite);
       setPreferredGenreId(match?.tmdbId);
     })();
 
     return () => {
       controller.abort();
     };
-  }, [watched.items]);
+  }, [watched.items, contentType.id]);
 
   const {
     loading,
@@ -146,14 +152,13 @@ export function RecommendationScreen({
       genreName,
     });
 
-    if (result.type === "movie") {
-      await addMovieInteraction({
-        movieId: result.id,
-        action: "WATCHED",
-        date: new Date().toISOString(),
-      });
-      await rebuildPreferencesFromWatched(watched.items);
-    }
+    await addMediaInteraction({
+      mediaId: result.id,
+      type: result.type,
+      action: "WATCHED",
+      date: new Date().toISOString(),
+    });
+    await rebuildPreferencesFromWatched(watched.items);
 
     setMarkingWatched(false);
 
@@ -230,14 +235,13 @@ export function RecommendationScreen({
             rating,
           );
 
-          if (toastTypeId.type === "movie") {
-            void addMovieInteraction({
-              movieId: toastTypeId.id,
-              action: "RATED",
-              date: new Date().toISOString(),
-              rating,
-            });
-          }
+          void addMediaInteraction({
+            mediaId: toastTypeId.id,
+            type: toastTypeId.type,
+            action: "RATED",
+            date: new Date().toISOString(),
+            rating,
+          });
         }}
         onClose={() => {
           setToastOpen(false);
