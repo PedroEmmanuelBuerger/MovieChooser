@@ -1,23 +1,18 @@
+import { SURPRISE_GENRE } from "../src/types/genre";
 import { getRandomRecommendation } from "../src/services/recommendationService";
-import { MOVIE_GENRES } from "../src/data/genres";
 
 async function main(): Promise<void> {
-  const genre = MOVIE_GENRES[0];
-
-  if (!genre) {
-    throw new Error("Movie genres list is empty");
-  }
-
   const recommendation = await getRandomRecommendation({
     platform: "netflix",
     type: "movie",
-    genre,
+    genre: SURPRISE_GENRE,
   });
 
   console.log("Recommendation ok");
   console.log(`Title: ${recommendation.title}`);
   console.log(`Type: ${recommendation.type}`);
   console.log(`Genre: ${recommendation.genre}`);
+  console.log(`Surprise: ${String(recommendation.isSurpriseMode)}`);
   console.log(`Rating: ${String(recommendation.rating)}`);
   console.log(`Poster: ${recommendation.poster}`);
   console.log(

@@ -6,7 +6,7 @@ import {
   type GetRecommendationInput,
 } from "@/services/recommendationService";
 import type { ContentTypeOption } from "@/types/content-type";
-import type { GenreOption } from "@/types/genre";
+import { isSurpriseGenre, type GenreSelection } from "@/types/genre";
 import type { StreamingPlatform } from "@/types/platform";
 import type { RecommendationResult } from "@/types/recommendation";
 
@@ -15,7 +15,7 @@ const MAX_EXCLUDE_HISTORY = 12;
 interface UseRecommendationParams {
   platform: StreamingPlatform;
   contentType: ContentTypeOption;
-  selectedGenre: GenreOption;
+  selectedGenre: GenreSelection;
 }
 
 interface UseRecommendationResult {
@@ -23,7 +23,8 @@ interface UseRecommendationResult {
   error: string | null;
   errorCode: string | null;
   result: RecommendationResult | null;
-  selectedGenre: GenreOption;
+  selectedGenre: GenreSelection;
+  isSurpriseMode: boolean;
   shuffle: () => Promise<RecommendationResult | null>;
   retry: () => Promise<RecommendationResult | null>;
 }
@@ -176,6 +177,7 @@ export function useRecommendation({
     errorCode,
     result,
     selectedGenre,
+    isSurpriseMode: isSurpriseGenre(selectedGenre),
     shuffle,
     retry,
   };

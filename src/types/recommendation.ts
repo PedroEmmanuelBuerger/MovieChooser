@@ -10,7 +10,8 @@ export interface RecommendationResult {
   rating: number;
   type: ContentTypeId;
   genre: string;
-  genreId: GenreId;
+  genreId: GenreId | "random";
+  isSurpriseMode: boolean;
   platformId: PlatformId;
   mediaType: "movie" | "tv";
 }

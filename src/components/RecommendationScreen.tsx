@@ -3,14 +3,14 @@ import { BackButton } from "@/components/BackButton";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { EASE_OUT_EXPO } from "@/lib/motion";
+import { isSurpriseGenre, type GenreSelection } from "@/types/genre";
 import type { ContentTypeOption } from "@/types/content-type";
-import type { GenreOption } from "@/types/genre";
 import type { StreamingPlatform } from "@/types/platform";
 
 interface RecommendationScreenProps {
   platform: StreamingPlatform;
   contentType: ContentTypeOption;
-  selectedGenre: GenreOption;
+  selectedGenre: GenreSelection;
   onBack: () => void;
 }
 
@@ -21,11 +21,12 @@ export function RecommendationScreen({
   onBack,
 }: RecommendationScreenProps) {
   const reduceMotion = useReducedMotion();
-  const { loading, error, result, shuffle, retry } = useRecommendation({
-    platform,
-    contentType,
-    selectedGenre,
-  });
+  const { loading, error, result, isSurpriseMode, shuffle, retry } =
+    useRecommendation({
+      platform,
+      contentType,
+      selectedGenre,
+    });
 
   const headerTitle =
     loading && !result
@@ -33,6 +34,10 @@ export function RecommendationScreen({
       : result
         ? "Pronto para assistir"
         : "Não encontramos um título";
+
+  const genreName = isSurpriseGenre(selectedGenre)
+    ? "Surpresa"
+    : selectedGenre.name;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-14">
@@ -56,7 +61,8 @@ export function RecommendationScreen({
         recommendation={result}
         platformName={platform.name}
         typeName={contentType.name}
-        genreName={selectedGenre.name}
+        genreName={genreName}
+        isSurpriseMode={isSurpriseMode}
         loading={loading}
         error={error}
         onShuffle={() => {

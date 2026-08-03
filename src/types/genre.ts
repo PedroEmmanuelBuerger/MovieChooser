@@ -44,3 +44,23 @@ export interface GenreOption {
   tmdbId: number;
   contentType: ContentTypeId;
 }
+
+export interface SurpriseGenreOption {
+  id: "random";
+  name: string;
+  isSurprise: true;
+}
+
+export type GenreSelection = GenreOption | SurpriseGenreOption;
+
+export const SURPRISE_GENRE: SurpriseGenreOption = {
+  id: "random",
+  name: "Surpreenda-me",
+  isSurprise: true,
+};
+
+export function isSurpriseGenre(
+  selection: GenreSelection,
+): selection is SurpriseGenreOption {
+  return selection.id === "random";
+}

@@ -7,7 +7,7 @@ import { TypeSelector } from "@/components/TypeSelector";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { screenFade } from "@/lib/motion";
 import type { ContentTypeOption } from "@/types/content-type";
-import type { GenreOption } from "@/types/genre";
+import type { GenreSelection } from "@/types/genre";
 import type { StreamingPlatform } from "@/types/platform";
 
 type AppStep = "welcome" | "platform" | "type" | "genre" | "recommendation";
@@ -19,7 +19,9 @@ export function App() {
   const [selectedType, setSelectedType] = useState<ContentTypeOption | null>(
     null,
   );
-  const [selectedGenre, setSelectedGenre] = useState<GenreOption | null>(null);
+  const [selectedGenre, setSelectedGenre] = useState<GenreSelection | null>(
+    null,
+  );
   const reduceMotion = useReducedMotion();
 
   let screen = null;

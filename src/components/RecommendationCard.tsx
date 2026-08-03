@@ -19,6 +19,7 @@ interface RecommendationCardProps {
   platformName: string;
   typeName: string;
   genreName: string;
+  isSurpriseMode: boolean;
   loading: boolean;
   error: string | null;
   onShuffle: () => void;
@@ -65,6 +66,7 @@ export function RecommendationCard({
   platformName,
   typeName,
   genreName,
+  isSurpriseMode,
   loading,
   error,
   onShuffle,
@@ -131,9 +133,15 @@ export function RecommendationCard({
                       <span className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
                         {typeName}
                       </span>
-                      <span className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
-                        {genreName}
-                      </span>
+                      {isSurpriseMode || recommendation.isSurpriseMode ? (
+                        <span className="rounded-full border border-primary/40 bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
+                          Surpresa
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
+                          {genreName}
+                        </span>
+                      )}
                     </div>
                   </CardHeader>
 

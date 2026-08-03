@@ -9,7 +9,10 @@ import {
 } from "@/services/tmdb";
 import { AxiosError } from "axios";
 import type { ContentTypeId, ContentTypeOption } from "@/types/content-type";
-import type { GenreOption } from "@/types/genre";
+import {
+  isSurpriseGenre,
+  type GenreSelection,
+} from "@/types/genre";
 import type { PlatformId, StreamingPlatform } from "@/types/platform";
 import type { RecommendationResult } from "@/types/recommendation";
 import type { Movie, TmdbPaginatedResponse, TVShow } from "@/types/tmdb";
@@ -17,6 +20,9 @@ import type { Movie, TmdbPaginatedResponse, TVShow } from "@/types/tmdb";
 const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500";
 const MAX_RANDOM_PAGES = 20;
 const MAX_PAGE_ATTEMPTS = 5;
+const SURPRISE_MAX_RANDOM_PAGES = 40;
+const SURPRISE_MAX_PAGE_ATTEMPTS = 8;
+const SURPRISE_MAX_CANDIDATES = 60;
 
 export class RecommendationServiceError extends Error {
   readonly code: string | undefined;
@@ -31,7 +37,7 @@ export class RecommendationServiceError extends Error {
 export interface GetRecommendationInput {
   platform: StreamingPlatform | PlatformId;
   type: ContentTypeOption | ContentTypeId;
-  genre: GenreOption;
+  genre: GenreSelection;
   excludeIds?: readonly number[];
   signal?: AbortSignal;
 }
@@ -74,6 +80,25 @@ function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function shuffleItems<T>(items: readonly T[]): T[] {
+  const shuffled = [...items];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomInt(0, index);
+    const current = shuffled[index];
+    const swap = shuffled[swapIndex];
+
+    if (current === undefined || swap === undefined) {
+      continue;
+    }
+
+    shuffled[index] = swap;
+    shuffled[swapIndex] = current;
+  }
+
+  return shuffled;
+}
+
 function pickRandomItem<T>(items: readonly T[]): T {
   const item = items[randomInt(0, items.length - 1)];
 
@@ -90,13 +115,17 @@ function pickRandomItem<T>(items: readonly T[]): T {
 function pickRandomCandidate<T extends { id: number }>(
   items: readonly T[],
   excludeIds: readonly number[],
+  shuffleFirst: boolean,
 ): T {
   const preferredItems =
     excludeIds.length > 0
       ? items.filter((item) => !excludeIds.includes(item.id))
-      : items;
+      : [...items];
 
-  return pickRandomItem(preferredItems.length > 0 ? preferredItems : items);
+  const pool =
+    preferredItems.length > 0 ? preferredItems : [...items];
+
+  return pickRandomItem(shuffleFirst ? shuffleItems(pool) : pool);
 }
 
 function filterValidItems<T>(
@@ -109,6 +138,12 @@ function filterValidItems<T>(
 async function fetchValidCandidates<T>(
   fetchPage: (page: number) => Promise<TmdbPaginatedResponse<T>>,
   isValid: (item: T) => boolean,
+  options: {
+    maxPages: number;
+    maxAttempts: number;
+    collectMultiplePages: boolean;
+    maxCandidates: number;
+  },
 ): Promise<T[]> {
   const firstPage = await fetchPage(1);
 
@@ -121,11 +156,12 @@ async function fetchValidCandidates<T>(
 
   const maxPage = Math.max(
     1,
-    Math.min(firstPage.totalPages, MAX_RANDOM_PAGES),
+    Math.min(firstPage.totalPages, options.maxPages),
   );
   const attemptedPages = new Set<number>();
+  const collected: T[] = [];
 
-  for (let attempt = 0; attempt < MAX_PAGE_ATTEMPTS; attempt += 1) {
+  for (let attempt = 0; attempt < options.maxAttempts; attempt += 1) {
     let pageNumber = randomInt(1, maxPage);
 
     while (attemptedPages.has(pageNumber) && attemptedPages.size < maxPage) {
@@ -137,9 +173,25 @@ async function fetchValidCandidates<T>(
     const page = pageNumber === 1 ? firstPage : await fetchPage(pageNumber);
     const validItems = filterValidItems(page.results, isValid);
 
-    if (validItems.length > 0) {
+    if (validItems.length === 0) {
+      continue;
+    }
+
+    if (!options.collectMultiplePages) {
       return validItems;
     }
+
+    for (const item of validItems) {
+      collected.push(item);
+
+      if (collected.length >= options.maxCandidates) {
+        return collected;
+      }
+    }
+  }
+
+  if (collected.length > 0) {
+    return collected;
   }
 
   const fallbackValidItems = filterValidItems(firstPage.results, isValid);
@@ -157,7 +209,7 @@ async function fetchValidCandidates<T>(
 function mapMovieResult(
   movie: Movie,
   platformId: PlatformId,
-  genre: GenreOption,
+  genre: GenreSelection,
 ): RecommendationResult {
   if (movie.posterPath === null) {
     throw new RecommendationServiceError(
@@ -166,6 +218,8 @@ function mapMovieResult(
     );
   }
 
+  const surprise = isSurpriseGenre(genre);
+
   return {
     id: movie.id,
     title: movie.title.trim(),
@@ -173,8 +227,9 @@ function mapMovieResult(
     poster: buildPosterUrl(movie.posterPath),
     rating: movie.voteAverage,
     type: "movie",
-    genre: genre.name,
+    genre: surprise ? "Surpresa" : genre.name,
     genreId: genre.id,
+    isSurpriseMode: surprise,
     platformId,
     mediaType: "movie",
   };
@@ -183,7 +238,7 @@ function mapMovieResult(
 function mapTVShowResult(
   show: TVShow,
   platformId: PlatformId,
-  genre: GenreOption,
+  genre: GenreSelection,
 ): RecommendationResult {
   if (show.posterPath === null) {
     throw new RecommendationServiceError(
@@ -192,6 +247,8 @@ function mapTVShowResult(
     );
   }
 
+  const surprise = isSurpriseGenre(genre);
+
   return {
     id: show.id,
     title: show.name.trim(),
@@ -199,11 +256,20 @@ function mapTVShowResult(
     poster: buildPosterUrl(show.posterPath),
     rating: show.voteAverage,
     type: "series",
-    genre: genre.name,
+    genre: surprise ? "Surpresa" : genre.name,
     genreId: genre.id,
+    isSurpriseMode: surprise,
     platformId,
     mediaType: "tv",
   };
+}
+
+function resolveGenreFilter(genre: GenreSelection): number | undefined {
+  if (isSurpriseGenre(genre)) {
+    return undefined;
+  }
+
+  return genre.tmdbId;
 }
 
 export async function getRandomRecommendation(
@@ -215,13 +281,29 @@ export async function getRandomRecommendation(
   const excludeIds = input.excludeIds ?? [];
   const signal = input.signal;
   const genre = input.genre;
+  const surpriseMode = isSurpriseGenre(genre);
+  const genreFilter = resolveGenreFilter(genre);
 
-  if (genre.contentType !== contentTypeId) {
+  if (!surpriseMode && genre.contentType !== contentTypeId) {
     throw new RecommendationServiceError(
       "Selected genre does not match the content type.",
       { code: "INVALID_ITEM" },
     );
   }
+
+  const fetchOptions = surpriseMode
+    ? {
+        maxPages: SURPRISE_MAX_RANDOM_PAGES,
+        maxAttempts: SURPRISE_MAX_PAGE_ATTEMPTS,
+        collectMultiplePages: true,
+        maxCandidates: SURPRISE_MAX_CANDIDATES,
+      }
+    : {
+        maxPages: MAX_RANDOM_PAGES,
+        maxAttempts: MAX_PAGE_ATTEMPTS,
+        collectMultiplePages: false,
+        maxCandidates: 20,
+      };
 
   try {
     if (contentTypeId === "movie") {
@@ -231,14 +313,15 @@ export async function getRandomRecommendation(
             watchProviderIds,
             watchRegion: TMDB_WATCH_REGION,
             page: pageNumber,
-            genreId: genre.tmdbId,
+            ...(genreFilter === undefined ? {} : { genreId: genreFilter }),
             ...(signal ? { signal } : {}),
           }),
         isValidMovie,
+        fetchOptions,
       );
 
       return mapMovieResult(
-        pickRandomCandidate(candidates, excludeIds),
+        pickRandomCandidate(candidates, excludeIds, surpriseMode),
         platformId,
         genre,
       );
@@ -250,14 +333,15 @@ export async function getRandomRecommendation(
           watchProviderIds,
           watchRegion: TMDB_WATCH_REGION,
           page: pageNumber,
-          genreId: genre.tmdbId,
+          ...(genreFilter === undefined ? {} : { genreId: genreFilter }),
           ...(signal ? { signal } : {}),
         }),
       isValidTVShow,
+      fetchOptions,
     );
 
     return mapTVShowResult(
-      pickRandomCandidate(candidates, excludeIds),
+      pickRandomCandidate(candidates, excludeIds, surpriseMode),
       platformId,
       genre,
     );
