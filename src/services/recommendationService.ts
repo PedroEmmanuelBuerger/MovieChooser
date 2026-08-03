@@ -29,6 +29,7 @@ export class RecommendationServiceError extends Error {
 export interface GetRecommendationInput {
   platform: StreamingPlatform | PlatformId;
   type: ContentTypeOption | ContentTypeId;
+  excludeIds?: readonly number[];
 }
 
 function resolvePlatformId(
@@ -74,6 +75,18 @@ function pickRandomItem<T>(items: readonly T[]): T {
   }
 
   return item;
+}
+
+function pickRandomCandidate<T extends { id: number }>(
+  items: readonly T[],
+  excludeIds: readonly number[],
+): T {
+  const preferredItems =
+    excludeIds.length > 0
+      ? items.filter((item) => !excludeIds.includes(item.id))
+      : items;
+
+  return pickRandomItem(preferredItems.length > 0 ? preferredItems : items);
 }
 
 function filterValidItems<T>(
@@ -184,6 +197,7 @@ export async function getRandomRecommendation(
   const platformId = resolvePlatformId(input.platform);
   const contentTypeId = resolveContentTypeId(input.type);
   const watchProviderIds = TMDB_WATCH_PROVIDER_IDS[platformId];
+  const excludeIds = input.excludeIds ?? [];
 
   try {
     if (contentTypeId === "movie") {
@@ -197,7 +211,10 @@ export async function getRandomRecommendation(
         isValidMovie,
       );
 
-      return mapMovieResult(pickRandomItem(candidates), platformId);
+      return mapMovieResult(
+        pickRandomCandidate(candidates, excludeIds),
+        platformId,
+      );
     }
 
     const candidates = await fetchValidCandidates(
@@ -210,7 +227,10 @@ export async function getRandomRecommendation(
       isValidTVShow,
     );
 
-    return mapTVShowResult(pickRandomItem(candidates), platformId);
+    return mapTVShowResult(
+      pickRandomCandidate(candidates, excludeIds),
+      platformId,
+    );
   } catch (error) {
     if (error instanceof RecommendationServiceError) {
       throw error;

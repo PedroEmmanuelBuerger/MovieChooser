@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { BackButton } from "@/components/BackButton";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import type { ContentTypeOption } from "@/types/content-type";
@@ -8,11 +9,13 @@ import type { StreamingPlatform } from "@/types/platform";
 interface RecommendationScreenProps {
   platform: StreamingPlatform;
   contentType: ContentTypeOption;
+  onBack: () => void;
 }
 
 export function RecommendationScreen({
   platform,
   contentType,
+  onBack,
 }: RecommendationScreenProps) {
   const { loading, error, result, fetchRecommendation } = useRecommendation();
   const hasRequestedRef = useRef(false);
@@ -31,6 +34,8 @@ export function RecommendationScreen({
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-14">
+      <BackButton onClick={onBack} />
+
       <motion.header
         className="mb-8 max-w-2xl"
         initial={{ opacity: 0, y: 16 }}
@@ -55,6 +60,7 @@ export function RecommendationScreen({
           void fetchRecommendation({
             platform,
             type: contentType,
+            ...(result ? { excludeIds: [result.id] } : {}),
           });
         }}
       />

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { BackButton } from "@/components/BackButton";
 import { TypeCard } from "@/components/TypeCard";
 import { CONTENT_TYPE_OPTIONS } from "@/data/content-types";
 import type { ContentTypeOption } from "@/types/content-type";
@@ -8,6 +9,7 @@ interface TypeSelectorProps {
   selectedPlatform: StreamingPlatform;
   selectedType: ContentTypeOption | null;
   onSelect: (option: ContentTypeOption) => void;
+  onBack: () => void;
 }
 
 const listVariants = {
@@ -34,9 +36,12 @@ export function TypeSelector({
   selectedPlatform,
   selectedType,
   onSelect,
+  onBack,
 }: TypeSelectorProps) {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-center px-6 py-14">
+      <BackButton onClick={onBack} />
+
       <motion.header
         className="mb-10 max-w-2xl"
         initial={{ opacity: 0, y: 16 }}

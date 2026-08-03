@@ -31,6 +31,9 @@ export function App() {
       <RecommendationScreen
         platform={selectedPlatform}
         contentType={selectedType}
+        onBack={() => {
+          setStep("type");
+        }}
       />
     );
   }
@@ -40,6 +43,9 @@ export function App() {
       <TypeSelector
         selectedPlatform={selectedPlatform}
         selectedType={selectedType}
+        onBack={() => {
+          setStep("platform");
+        }}
         onSelect={(option) => {
           setSelectedType(option);
           setStep("recommendation");
@@ -51,9 +57,16 @@ export function App() {
   return (
     <PlatformSelector
       selectedPlatform={selectedPlatform}
+      onBack={() => {
+        setStep("welcome");
+      }}
       onSelect={(platform) => {
         setSelectedPlatform(platform);
-        setSelectedType(null);
+
+        if (selectedPlatform?.id !== platform.id) {
+          setSelectedType(null);
+        }
+
         setStep("type");
       }}
     />

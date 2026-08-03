@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
-import { STREAMING_PLATFORMS } from "@/data/platforms";
+import { BackButton } from "@/components/BackButton";
 import { PlatformCard } from "@/components/PlatformCard";
+import { STREAMING_PLATFORMS } from "@/data/platforms";
 import type { StreamingPlatform } from "@/types/platform";
 
 interface PlatformSelectorProps {
   selectedPlatform: StreamingPlatform | null;
   onSelect: (platform: StreamingPlatform) => void;
+  onBack: () => void;
 }
 
 const listVariants = {
@@ -31,9 +33,12 @@ const itemVariants = {
 export function PlatformSelector({
   selectedPlatform,
   onSelect,
+  onBack,
 }: PlatformSelectorProps) {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-14">
+      <BackButton onClick={onBack} />
+
       <motion.header
         className="mb-10 max-w-2xl"
         initial={{ opacity: 0, y: 16 }}
