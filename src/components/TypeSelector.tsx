@@ -3,6 +3,7 @@ import { BackButton } from "@/components/BackButton";
 import { TypeCard } from "@/components/TypeCard";
 import { CONTENT_TYPE_OPTIONS } from "@/data/content-types";
 import { EASE_OUT_EXPO, listItemVariants, listVariants } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 import type { ContentTypeOption } from "@/types/content-type";
 import type { StreamingPlatform } from "@/types/platform";
 
@@ -13,6 +14,16 @@ interface TypeSelectorProps {
   onBack: () => void;
 }
 
+function getContentTypesForPlatform(
+  platform: StreamingPlatform,
+): readonly ContentTypeOption[] {
+  if (platform.id === "crunchyroll") {
+    return CONTENT_TYPE_OPTIONS.filter((option) => option.id === "anime");
+  }
+
+  return CONTENT_TYPE_OPTIONS;
+}
+
 export function TypeSelector({
   selectedPlatform,
   selectedType,
@@ -20,6 +31,7 @@ export function TypeSelector({
   onBack,
 }: TypeSelectorProps) {
   const reduceMotion = useReducedMotion();
+  const options = getContentTypesForPlatform(selectedPlatform);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-center px-6 py-14">
@@ -38,17 +50,22 @@ export function TypeSelector({
           O que você quer assistir?
         </h1>
         <p className="mt-3 max-w-lg text-base text-muted-foreground sm:text-lg">
-          Escolha o tipo de conteúdo para receber uma recomendação sob medida.
+          {selectedPlatform.id === "crunchyroll"
+            ? "Na Crunchyroll, o randomizador foca em animes."
+            : "Escolha o tipo de conteúdo para receber uma recomendação sob medida."}
         </p>
       </motion.header>
 
       <motion.div
-        className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+        className={cn(
+          "grid grid-cols-1 gap-4",
+          options.length === 1 ? "sm:max-w-md sm:grid-cols-1" : "sm:grid-cols-3",
+        )}
         initial={reduceMotion ? false : "hidden"}
         animate="visible"
         {...(reduceMotion ? {} : { variants: listVariants })}
       >
-        {CONTENT_TYPE_OPTIONS.map((option) => (
+        {options.map((option) => (
           <motion.div
             key={option.id}
             {...(reduceMotion ? {} : { variants: listItemVariants })}
