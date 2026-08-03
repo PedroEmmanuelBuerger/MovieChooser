@@ -28,23 +28,6 @@ export interface TVShow {
   originCountry: string[];
 }
 
-export type RecommendationMediaType = "movie" | "tv";
-
-export interface Recommendation {
-  id: number;
-  title: string;
-  overview: string;
-  posterPath: string | null;
-  backdropPath: string | null;
-  releaseDate: string | null;
-  voteAverage: number;
-  voteCount: number;
-  popularity: number;
-  genreIds: number[];
-  mediaType: RecommendationMediaType;
-  originalLanguage: string;
-}
-
 export interface TmdbPaginatedResponse<T> {
   page: number;
   results: T[];

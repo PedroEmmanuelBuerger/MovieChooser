@@ -1,7 +1,6 @@
 import axios, { AxiosError, type AxiosInstance } from "axios";
 import type {
   Movie,
-  Recommendation,
   TmdbPaginatedResponse,
   TVShow,
 } from "@/types/tmdb";
@@ -208,38 +207,16 @@ function mapPaginated<TDto, TResult>(
   };
 }
 
-export function mapMovieToRecommendation(movie: Movie): Recommendation {
-  return {
-    id: movie.id,
-    title: movie.title,
-    overview: movie.overview,
-    posterPath: movie.posterPath,
-    backdropPath: movie.backdropPath,
-    releaseDate: movie.releaseDate || null,
-    voteAverage: movie.voteAverage,
-    voteCount: movie.voteCount,
-    popularity: movie.popularity,
-    genreIds: movie.genreIds,
-    mediaType: "movie",
-    originalLanguage: movie.originalLanguage,
-  };
-}
+function rethrowOrWrap(error: unknown): never {
+  if (error instanceof AxiosError && error.code === "ERR_CANCELED") {
+    throw error;
+  }
 
-export function mapTVShowToRecommendation(show: TVShow): Recommendation {
-  return {
-    id: show.id,
-    title: show.name,
-    overview: show.overview,
-    posterPath: show.posterPath,
-    backdropPath: show.backdropPath,
-    releaseDate: show.firstAirDate || null,
-    voteAverage: show.voteAverage,
-    voteCount: show.voteCount,
-    popularity: show.popularity,
-    genreIds: show.genreIds,
-    mediaType: "tv",
-    originalLanguage: show.originalLanguage,
-  };
+  if (error instanceof TmdbServiceError) {
+    throw error;
+  }
+
+  throw toServiceError(error);
 }
 
 function createTmdbClient(): AxiosInstance {
@@ -271,6 +248,10 @@ function createTmdbClient(): AxiosInstance {
   client.interceptors.response.use(
     (response) => response,
     (error: unknown) => {
+      if (error instanceof AxiosError && error.code === "ERR_CANCELED") {
+        throw error;
+      }
+
       throw toServiceError(error);
     },
   );
@@ -279,36 +260,6 @@ function createTmdbClient(): AxiosInstance {
 }
 
 export const tmdbClient = createTmdbClient();
-
-export async function getPopularMovies(
-  page = 1,
-): Promise<TmdbPaginatedResponse<Movie>> {
-  try {
-    const { data } = await tmdbClient.get<TmdbPaginatedDto<TmdbMovieDto>>(
-      "/movie/popular",
-      { params: { page } },
-    );
-
-    return mapPaginated(data, mapMovie);
-  } catch (error) {
-    throw toServiceError(error);
-  }
-}
-
-export async function getPopularTVShows(
-  page = 1,
-): Promise<TmdbPaginatedResponse<TVShow>> {
-  try {
-    const { data } = await tmdbClient.get<TmdbPaginatedDto<TmdbTvShowDto>>(
-      "/tv/popular",
-      { params: { page } },
-    );
-
-    return mapPaginated(data, mapTvShow);
-  } catch (error) {
-    throw toServiceError(error);
-  }
-}
 
 export async function getConfiguration(): Promise<{
   images: {
@@ -331,7 +282,7 @@ export async function getConfiguration(): Promise<{
       },
     };
   } catch (error) {
-    throw toServiceError(error);
+    rethrowOrWrap(error);
   }
 }
 
@@ -339,6 +290,7 @@ export interface DiscoverByWatchProviderParams {
   watchProviderIds: string;
   watchRegion: string;
   page?: number;
+  signal?: AbortSignal;
 }
 
 export async function discoverMoviesByWatchProvider(
@@ -348,6 +300,7 @@ export async function discoverMoviesByWatchProvider(
     const { data } = await tmdbClient.get<TmdbPaginatedDto<TmdbMovieDto>>(
       "/discover/movie",
       {
+        ...(params.signal ? { signal: params.signal } : {}),
         params: {
           page: params.page ?? 1,
           sort_by: "popularity.desc",
@@ -361,7 +314,7 @@ export async function discoverMoviesByWatchProvider(
 
     return mapPaginated(data, mapMovie);
   } catch (error) {
-    throw toServiceError(error);
+    rethrowOrWrap(error);
   }
 }
 
@@ -372,6 +325,7 @@ export async function discoverTVShowsByWatchProvider(
     const { data } = await tmdbClient.get<TmdbPaginatedDto<TmdbTvShowDto>>(
       "/discover/tv",
       {
+        ...(params.signal ? { signal: params.signal } : {}),
         params: {
           page: params.page ?? 1,
           sort_by: "popularity.desc",
@@ -385,6 +339,6 @@ export async function discoverTVShowsByWatchProvider(
 
     return mapPaginated(data, mapTvShow);
   } catch (error) {
-    throw toServiceError(error);
+    rethrowOrWrap(error);
   }
 }

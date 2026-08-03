@@ -7,6 +7,7 @@ import {
   discoverTVShowsByWatchProvider,
   TmdbServiceError,
 } from "@/services/tmdb";
+import { AxiosError } from "axios";
 import type { ContentTypeId, ContentTypeOption } from "@/types/content-type";
 import type { PlatformId, StreamingPlatform } from "@/types/platform";
 import type { RecommendationResult } from "@/types/recommendation";
@@ -30,6 +31,7 @@ export interface GetRecommendationInput {
   platform: StreamingPlatform | PlatformId;
   type: ContentTypeOption | ContentTypeId;
   excludeIds?: readonly number[];
+  signal?: AbortSignal;
 }
 
 function resolvePlatformId(
@@ -198,6 +200,7 @@ export async function getRandomRecommendation(
   const contentTypeId = resolveContentTypeId(input.type);
   const watchProviderIds = TMDB_WATCH_PROVIDER_IDS[platformId];
   const excludeIds = input.excludeIds ?? [];
+  const signal = input.signal;
 
   try {
     if (contentTypeId === "movie") {
@@ -207,6 +210,7 @@ export async function getRandomRecommendation(
             watchProviderIds,
             watchRegion: TMDB_WATCH_REGION,
             page: pageNumber,
+            ...(signal ? { signal } : {}),
           }),
         isValidMovie,
       );
@@ -223,6 +227,7 @@ export async function getRandomRecommendation(
           watchProviderIds,
           watchRegion: TMDB_WATCH_REGION,
           page: pageNumber,
+          ...(signal ? { signal } : {}),
         }),
       isValidTVShow,
     );
@@ -232,6 +237,13 @@ export async function getRandomRecommendation(
       platformId,
     );
   } catch (error) {
+    if (
+      error instanceof AxiosError &&
+      error.code === "ERR_CANCELED"
+    ) {
+      throw error;
+    }
+
     if (error instanceof RecommendationServiceError) {
       throw error;
     }

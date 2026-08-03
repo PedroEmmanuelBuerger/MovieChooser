@@ -1,5 +1,5 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, RefreshCw, Star } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AlertCircle, Loader2, RefreshCw, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EASE_OUT_EXPO } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { RecommendationResult } from "@/types/recommendation";
 
@@ -20,13 +21,15 @@ interface RecommendationCardProps {
   loading: boolean;
   error: string | null;
   onShuffle: () => void;
+  onRetry: () => void;
+  onChangeFilters: () => void;
 }
 
 const cardMotion = {
   initial: { opacity: 0, y: 24, scale: 0.98 },
   animate: { opacity: 1, y: 0, scale: 1 },
   exit: { opacity: 0, y: -16, scale: 0.98 },
-  transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
+  transition: { duration: 0.4, ease: EASE_OUT_EXPO },
 };
 
 function formatRating(rating: number): string {
@@ -35,7 +38,7 @@ function formatRating(rating: number): string {
 
 function RecommendationCardSkeleton() {
   return (
-    <Card className="overflow-hidden border-border/80 bg-card/80">
+    <Card className="overflow-hidden border-border/80 bg-card/80" aria-busy>
       <div className="grid gap-0 md:grid-cols-[240px_1fr]">
         <Skeleton className="aspect-[2/3] w-full rounded-none md:min-h-[360px]" />
         <div className="flex flex-col gap-4 p-6">
@@ -62,25 +65,52 @@ export function RecommendationCard({
   loading,
   error,
   onShuffle,
+  onRetry,
+  onChangeFilters,
 }: RecommendationCardProps) {
+  const reduceMotion = useReducedMotion();
   const showSkeleton = loading && !recommendation;
+  const motionProps = reduceMotion
+    ? {
+        initial: { opacity: 1 },
+        animate: { opacity: 1 },
+        exit: { opacity: 1 },
+        transition: { duration: 0 },
+      }
+    : cardMotion;
 
   return (
     <div className="w-full max-w-4xl">
       <AnimatePresence mode="wait">
         {showSkeleton ? (
-          <motion.div key="recommendation-skeleton" {...cardMotion}>
+          <motion.div key="recommendation-skeleton" {...motionProps}>
             <RecommendationCardSkeleton />
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Buscando uma recomendação para você...
+            </p>
           </motion.div>
         ) : recommendation ? (
-          <motion.div key={recommendation.id} {...cardMotion}>
-            <Card className="overflow-hidden border-border/80 bg-card/90 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.8)]">
+          <motion.div key={recommendation.id} {...motionProps}>
+            <Card
+              className="relative overflow-hidden border-border/80 bg-card/90 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.8)]"
+              aria-busy={loading}
+            >
+              {loading ? (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/55 backdrop-blur-[2px]">
+                  <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2 text-sm text-foreground shadow-lg">
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                    Sorteando outro título...
+                  </div>
+                </div>
+              ) : null}
+
               <div className="grid gap-0 md:grid-cols-[240px_1fr]">
                 <div className="relative aspect-[2/3] overflow-hidden bg-muted md:aspect-auto md:min-h-[360px]">
                   <img
                     src={recommendation.poster}
                     alt={`Poster de ${recommendation.title}`}
                     className="h-full w-full object-cover"
+                    loading="lazy"
                   />
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-card/40" />
                 </div>
@@ -102,7 +132,7 @@ export function RecommendationCard({
                   </CardHeader>
 
                   <CardContent className="flex flex-1 flex-col gap-5">
-                    <CardDescription className="text-base leading-relaxed text-muted-foreground">
+                    <CardDescription className="line-clamp-6 text-base leading-relaxed text-muted-foreground">
                       {recommendation.description.trim().length > 0
                         ? recommendation.description
                         : "Sem descrição disponível para este título."}
@@ -122,7 +152,11 @@ export function RecommendationCard({
 
                   <CardFooter className="flex-col items-stretch gap-3">
                     {error ? (
-                      <p className="text-sm text-destructive" role="alert">
+                      <p
+                        className="flex items-start gap-2 text-sm text-destructive"
+                        role="alert"
+                      >
+                        <AlertCircle className="mt-0.5 size-4 shrink-0" />
                         {error}
                       </p>
                     ) : null}
@@ -147,28 +181,40 @@ export function RecommendationCard({
             </Card>
           </motion.div>
         ) : (
-          <motion.div key="recommendation-empty" {...cardMotion}>
+          <motion.div key="recommendation-empty" {...motionProps}>
             <Card className="border-border/80 bg-card/80 p-8 text-center">
-              <CardHeader>
-                <CardTitle>Nenhuma recomendação</CardTitle>
-                <CardDescription>
+              <CardHeader className="items-center">
+                <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+                  <AlertCircle className="size-6" aria-hidden />
+                </div>
+                <CardTitle>Nenhuma recomendação encontrada</CardTitle>
+                <CardDescription className="max-w-md text-base">
                   {error ??
                     "Não foi possível encontrar um título com os filtros escolhidos."}
                 </CardDescription>
               </CardHeader>
-              <CardFooter className="justify-center">
+              <CardFooter className="flex-col justify-center gap-3 sm:flex-row">
                 <Button
                   type="button"
                   size="lg"
                   disabled={loading}
-                  onClick={onShuffle}
+                  onClick={onRetry}
                 >
                   {loading ? (
                     <Loader2 className="animate-spin" aria-hidden />
                   ) : (
                     <RefreshCw aria-hidden />
                   )}
-                  Sortear novamente
+                  Tentar novamente
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  disabled={loading}
+                  onClick={onChangeFilters}
+                >
+                  Mudar filtros
                 </Button>
               </CardFooter>
             </Card>

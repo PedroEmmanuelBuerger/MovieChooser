@@ -1,8 +1,10 @@
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
 import { PlatformSelector } from "@/components/PlatformSelector";
 import { RecommendationScreen } from "@/components/RecommendationScreen";
 import { TypeSelector } from "@/components/TypeSelector";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
+import { screenFade } from "@/lib/motion";
 import type { ContentTypeOption } from "@/types/content-type";
 import type { StreamingPlatform } from "@/types/platform";
 
@@ -15,19 +17,20 @@ export function App() {
   const [selectedType, setSelectedType] = useState<ContentTypeOption | null>(
     null,
   );
+  const reduceMotion = useReducedMotion();
+
+  let screen = null;
 
   if (step === "welcome") {
-    return (
+    screen = (
       <WelcomeScreen
         onStart={() => {
           setStep("platform");
         }}
       />
     );
-  }
-
-  if (step === "recommendation" && selectedPlatform && selectedType) {
-    return (
+  } else if (step === "recommendation" && selectedPlatform && selectedType) {
+    screen = (
       <RecommendationScreen
         platform={selectedPlatform}
         contentType={selectedType}
@@ -36,10 +39,8 @@ export function App() {
         }}
       />
     );
-  }
-
-  if (step === "type" && selectedPlatform) {
-    return (
+  } else if (step === "type" && selectedPlatform) {
+    screen = (
       <TypeSelector
         selectedPlatform={selectedPlatform}
         selectedType={selectedType}
@@ -52,23 +53,38 @@ export function App() {
         }}
       />
     );
+  } else {
+    screen = (
+      <PlatformSelector
+        selectedPlatform={selectedPlatform}
+        onBack={() => {
+          setStep("welcome");
+        }}
+        onSelect={(platform) => {
+          setSelectedPlatform(platform);
+
+          if (selectedPlatform?.id !== platform.id) {
+            setSelectedType(null);
+          }
+
+          setStep("type");
+        }}
+      />
+    );
   }
 
   return (
-    <PlatformSelector
-      selectedPlatform={selectedPlatform}
-      onBack={() => {
-        setStep("welcome");
-      }}
-      onSelect={(platform) => {
-        setSelectedPlatform(platform);
-
-        if (selectedPlatform?.id !== platform.id) {
-          setSelectedType(null);
-        }
-
-        setStep("type");
-      }}
-    />
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={step}
+        className="min-h-screen"
+        initial={reduceMotion ? false : screenFade.initial}
+        animate={screenFade.animate}
+        transition={reduceMotion ? { duration: 0 } : screenFade.transition}
+        {...(reduceMotion ? {} : { exit: screenFade.exit })}
+      >
+        {screen}
+      </motion.div>
+    </AnimatePresence>
   );
 }

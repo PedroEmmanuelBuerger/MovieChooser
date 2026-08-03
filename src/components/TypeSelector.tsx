@@ -1,7 +1,8 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { BackButton } from "@/components/BackButton";
 import { TypeCard } from "@/components/TypeCard";
 import { CONTENT_TYPE_OPTIONS } from "@/data/content-types";
+import { EASE_OUT_EXPO, listItemVariants, listVariants } from "@/lib/motion";
 import type { ContentTypeOption } from "@/types/content-type";
 import type { StreamingPlatform } from "@/types/platform";
 
@@ -12,41 +13,23 @@ interface TypeSelectorProps {
   onBack: () => void;
 }
 
-const listVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.12,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 18 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
-  },
-};
-
 export function TypeSelector({
   selectedPlatform,
   selectedType,
   onSelect,
   onBack,
 }: TypeSelectorProps) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-center px-6 py-14">
       <BackButton onClick={onBack} />
 
       <motion.header
         className="mb-10 max-w-2xl"
-        initial={{ opacity: 0, y: 16 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
       >
         <p className="mb-3 font-display text-sm font-semibold uppercase tracking-[0.2em] text-primary">
           {selectedPlatform.name}
@@ -61,12 +44,15 @@ export function TypeSelector({
 
       <motion.div
         className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-        variants={listVariants}
-        initial="hidden"
+        initial={reduceMotion ? false : "hidden"}
         animate="visible"
+        {...(reduceMotion ? {} : { variants: listVariants })}
       >
         {CONTENT_TYPE_OPTIONS.map((option) => (
-          <motion.div key={option.id} variants={itemVariants}>
+          <motion.div
+            key={option.id}
+            {...(reduceMotion ? {} : { variants: listItemVariants })}
+          >
             <TypeCard
               option={option}
               selected={selectedType?.id === option.id}
