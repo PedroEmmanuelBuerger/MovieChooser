@@ -334,3 +334,57 @@ export async function getConfiguration(): Promise<{
     throw toServiceError(error);
   }
 }
+
+export interface DiscoverByWatchProviderParams {
+  watchProviderIds: string;
+  watchRegion: string;
+  page?: number;
+}
+
+export async function discoverMoviesByWatchProvider(
+  params: DiscoverByWatchProviderParams,
+): Promise<TmdbPaginatedResponse<Movie>> {
+  try {
+    const { data } = await tmdbClient.get<TmdbPaginatedDto<TmdbMovieDto>>(
+      "/discover/movie",
+      {
+        params: {
+          page: params.page ?? 1,
+          sort_by: "popularity.desc",
+          watch_region: params.watchRegion,
+          with_watch_providers: params.watchProviderIds,
+          with_watch_monetization_types: "flatrate",
+          "vote_count.gte": 20,
+        },
+      },
+    );
+
+    return mapPaginated(data, mapMovie);
+  } catch (error) {
+    throw toServiceError(error);
+  }
+}
+
+export async function discoverTVShowsByWatchProvider(
+  params: DiscoverByWatchProviderParams,
+): Promise<TmdbPaginatedResponse<TVShow>> {
+  try {
+    const { data } = await tmdbClient.get<TmdbPaginatedDto<TmdbTvShowDto>>(
+      "/discover/tv",
+      {
+        params: {
+          page: params.page ?? 1,
+          sort_by: "popularity.desc",
+          watch_region: params.watchRegion,
+          with_watch_providers: params.watchProviderIds,
+          with_watch_monetization_types: "flatrate",
+          "vote_count.gte": 20,
+        },
+      },
+    );
+
+    return mapPaginated(data, mapTvShow);
+  } catch (error) {
+    throw toServiceError(error);
+  }
+}
