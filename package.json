@@ -22,13 +22,15 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.electron.json --noEmit",
     "test:tmdb": "vite-node scripts/test-tmdb.ts",
-    "test:recommendation": "vite-node scripts/test-recommendation.ts"
+    "test:recommendation": "vite-node scripts/test-recommendation.ts",
+    "test:storage": "vite-node scripts/test-storage.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",
     "axios": "^1.19.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-store": "^8.2.0",
     "framer-motion": "^12.43.0",
     "lucide-react": "^1.28.0",
     "react": "^19.1.0",

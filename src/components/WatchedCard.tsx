@@ -1,0 +1,83 @@
+import { motion, useReducedMotion } from "framer-motion";
+import { Star } from "lucide-react";
+import { UserRatingPicker } from "@/components/UserRatingPicker";
+import { listItemVariants } from "@/lib/motion";
+import type { UserRating, WatchedItem } from "@/types/watched";
+
+interface WatchedCardProps {
+  item: WatchedItem;
+  onRatingChange: (rating: UserRating) => void;
+}
+
+function formatDate(iso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
+export function WatchedCard({ item, onRatingChange }: WatchedCardProps) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <motion.article
+      layout={!reduceMotion}
+      variants={listItemVariants}
+      className="flex gap-4 overflow-hidden rounded-xl border border-border/70 bg-card/70 p-3 shadow-[0_16px_40px_-36px_rgba(0,0,0,0.9)]"
+    >
+      <div className="relative h-[132px] w-[88px] shrink-0 overflow-hidden rounded-lg bg-muted">
+        <img
+          src={item.poster}
+          alt={`Poster de ${item.title}`}
+          className="h-full w-full object-cover"
+          loading="lazy"
+        />
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div>
+          <h3 className="truncate font-display text-lg font-semibold text-foreground">
+            {item.title}
+          </h3>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <span className="rounded-full border border-border bg-secondary px-2.5 py-0.5 text-[11px] text-secondary-foreground">
+              {item.platform}
+            </span>
+            <span className="rounded-full border border-border bg-secondary px-2.5 py-0.5 text-[11px] text-secondary-foreground">
+              {item.type === "movie" ? "Filme" : "Série/Anime"}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+          <p className="flex items-center gap-1 text-foreground">
+            <Star className="size-3.5 fill-primary text-primary" aria-hidden />
+            <span className="font-medium tabular-nums">
+              {item.ratingTmdb.toFixed(1)}
+            </span>
+            <span className="text-muted-foreground">TMDB</span>
+          </p>
+          <p>
+            Sua nota:{" "}
+            <span className="font-medium text-foreground tabular-nums">
+              {item.userRating ?? "—"}
+            </span>
+          </p>
+          <p>Assistido em {formatDate(item.watchedAt)}</p>
+        </div>
+
+        <div>
+          <p className="mb-1.5 text-xs text-muted-foreground">Alterar sua nota</p>
+          <UserRatingPicker
+            value={item.userRating}
+            onChange={onRatingChange}
+            size="sm"
+          />
+        </div>
+      </div>
+    </motion.article>
+  );
+}

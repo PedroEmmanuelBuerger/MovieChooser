@@ -39,6 +39,8 @@ export interface GetRecommendationInput {
   type: ContentTypeOption | ContentTypeId;
   genre: GenreSelection;
   excludeIds?: readonly number[];
+  excludeWatchedKeys?: readonly string[];
+  preferHighUserRatings?: boolean;
   signal?: AbortSignal;
 }
 

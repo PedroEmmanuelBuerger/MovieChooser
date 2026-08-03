@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, nativeImage } from "electron";
 import path from "node:path";
+import { registerStorageIpc } from "./storage";
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
 
@@ -47,7 +48,6 @@ function createWindow(): void {
 
   if (isDev && process.env.VITE_DEV_SERVER_URL) {
     void mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     void mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
@@ -59,6 +59,7 @@ void app.whenReady().then(() => {
   }
 
   ipcMain.handle("app:get-version", () => app.getVersion());
+  registerStorageIpc();
 
   createWindow();
 

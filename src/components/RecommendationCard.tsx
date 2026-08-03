@@ -1,5 +1,12 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { AlertCircle, Loader2, RefreshCw, Star } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  Star,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,11 +27,14 @@ interface RecommendationCardProps {
   typeName: string;
   genreName: string;
   isSurpriseMode: boolean;
+  isWatched: boolean;
+  markingWatched: boolean;
   loading: boolean;
   error: string | null;
   onShuffle: () => void;
   onRetry: () => void;
   onChangeFilters: () => void;
+  onMarkWatched: () => void;
 }
 
 const cardMotion = {
@@ -67,11 +77,14 @@ export function RecommendationCard({
   typeName,
   genreName,
   isSurpriseMode,
+  isWatched,
+  markingWatched,
   loading,
   error,
   onShuffle,
   onRetry,
   onChangeFilters,
+  onMarkWatched,
 }: RecommendationCardProps) {
   const reduceMotion = useReducedMotion();
   const showSkeleton = loading && !recommendation;
@@ -175,20 +188,51 @@ export function RecommendationCard({
                       </p>
                     ) : null}
 
-                    <Button
-                      type="button"
-                      size="lg"
-                      className={cn("w-full")}
-                      disabled={loading}
-                      onClick={onShuffle}
-                    >
-                      {loading ? (
-                        <Loader2 className="animate-spin" aria-hidden />
+                    <div className="flex w-full flex-col gap-3 sm:flex-row">
+                      <Button
+                        type="button"
+                        size="lg"
+                        className={cn("w-full flex-1")}
+                        disabled={loading}
+                        onClick={onShuffle}
+                      >
+                        {loading ? (
+                          <Loader2 className="animate-spin" aria-hidden />
+                        ) : (
+                          <RefreshCw aria-hidden />
+                        )}
+                        Sortear novamente
+                      </Button>
+
+                      {isWatched ? (
+                        <Button
+                          type="button"
+                          size="lg"
+                          variant="secondary"
+                          className="w-full flex-1"
+                          disabled
+                        >
+                          <CheckCircle2 aria-hidden />
+                          Já assistido
+                        </Button>
                       ) : (
-                        <RefreshCw aria-hidden />
+                        <Button
+                          type="button"
+                          size="lg"
+                          variant="outline"
+                          className="w-full flex-1"
+                          disabled={loading || markingWatched}
+                          onClick={onMarkWatched}
+                        >
+                          {markingWatched ? (
+                            <Loader2 className="animate-spin" aria-hidden />
+                          ) : (
+                            <Check aria-hidden />
+                          )}
+                          Marcar como assistido
+                        </Button>
                       )}
-                      Sortear novamente
-                    </Button>
+                    </div>
                   </CardFooter>
                 </div>
               </div>

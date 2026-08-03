@@ -8,6 +8,17 @@ Aplicativo desktop Windows que recomenda filmes e séries/animes disponíveis em
 2. Escolha o tipo (Filme ou Série/Anime)
 3. Escolha exatamente uma categoria (gênero) ou **Surpreenda-me**
 4. Receba uma recomendação aleatória com opção de sortear novamente
+5. Acompanhe o **Histórico** e marque títulos como **Assistidos** (com nota de 1 a 10)
+
+## Navegação
+
+Sidebar fixa à esquerda:
+
+- **Descobrir** — fluxo de recomendação
+- **Histórico** — recomendações recebidas (abas Filmes / Séries e Animes)
+- **Assistidos** — biblioteca local com nota do usuário
+
+Os dados ficam neste dispositivo (sem login), via `electron-store` no processo principal do Electron.
 
 ## Requisitos
 
@@ -25,6 +36,7 @@ Aplicativo desktop Windows que recomenda filmes e séries/animes disponíveis em
 - Framer Motion
 - Lucide React
 - Axios + TMDB API
+- electron-store (histórico e assistidos)
 - electron-builder (instalador Windows)
 
 ## Configuração
@@ -52,10 +64,12 @@ npm run build
 npm run dist
 npm run test:tmdb
 npm run test:recommendation
+npm run test:storage
 ```
 
 - `npm run build` — compila TypeScript, Vite e prepara assets Windows
 - `npm run dist` — gera o instalador `MovieChooser-Setup-<versão>.exe` em `release/`
+- `npm run test:storage` — valida histórico, assistidos, nota e anti-duplicação (localStorage no Node/Vite)
 
 ## Distribuição Windows
 
@@ -74,11 +88,16 @@ npm run dist
 ```text
 src/
   components/   telas e UI (shadcn)
+  context/      LibraryProvider (histórico + assistidos)
   data/         plataformas, tipos e providers TMDB
-  hooks/        useRecommendation
-  services/     tmdb + recommendationService
+  hooks/        useRecommendation, useHistory, useWatched
+  services/     tmdb, recommendationService, storageService
   types/        contratos TypeScript
   lib/          utils, motion e mensagens de erro
+electron/
+  main.ts       janela + IPC
+  preload.ts    bridge segura
+  storage.ts    persistência electron-store
 build/
   icon.ico      ícone do instalador e do app
   icon.png      arte fonte do ícone
@@ -90,5 +109,8 @@ build/
 - O modo Surpreenda-me sorteia sem filtro de gênero, com mais variedade
 - Itens sem título ou poster são ignorados no sorteio
 - O botão “Sortear novamente” evita repetir títulos recentes
+- Cada recomendação exibida entra automaticamente no Histórico
+- Marcar como assistido não remove o item do Histórico e impede duplicatas em Assistidos
+- A arquitetura já expõe `excludeWatchedKeys` / preferências futuras no serviço de recomendação (ainda sem filtrar)
 - A chave TMDB é embutida no build do renderer (`VITE_TMDB_API_KEY`) no momento do `npm run build`
 - Use Node 22+ se o Tailwind reportar problemas de binding nativo
