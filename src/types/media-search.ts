@@ -9,6 +9,7 @@ export interface SearchMediaResult {
   ratingTmdb: number;
   genreIds: number[];
   genreNames: string[];
+  runtime?: number | null;
   seasons?: number | null;
   episodes?: number | null;
   studio?: string | null;

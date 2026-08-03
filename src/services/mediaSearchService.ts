@@ -163,10 +163,30 @@ async function searchMoviesKind(
     }),
   ]);
 
-  return dedupeById([
+  const base = dedupeById([
     ...ptResults.results.map(mapMovieResult),
     ...enResults.results.map(mapMovieResult),
   ]).slice(0, 24);
+
+  const withRuntime = await Promise.all(
+    base.map(async (item) => {
+      try {
+        const details = await getMovieDetails(
+          item.id,
+          signal,
+        );
+        if (details.runtime && details.runtime > 0) {
+          return { ...item, runtime: details.runtime };
+        }
+      } catch {
+        return item;
+      }
+
+      return item;
+    }),
+  );
+
+  return withRuntime;
 }
 
 async function searchTvKind(
