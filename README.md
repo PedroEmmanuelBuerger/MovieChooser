@@ -24,6 +24,7 @@ Aplicativo desktop Windows que recomenda filmes e séries/animes disponíveis em
 - Framer Motion
 - Lucide React
 - Axios + TMDB API
+- electron-builder (instalador Windows)
 
 ## Configuração
 
@@ -47,8 +48,24 @@ npm run electron:dev
 npm run typecheck
 npm run lint
 npm run build
+npm run dist
 npm run test:tmdb
 npm run test:recommendation
+```
+
+- `npm run build` — compila TypeScript, Vite e prepara assets Windows
+- `npm run dist` — gera o instalador `MovieChooser-Setup-<versão>.exe` em `release/`
+
+## Distribuição Windows
+
+O empacotamento usa `electron-builder` com alvo NSIS:
+
+- Nome do aplicativo: **MovieChooser**
+- Ícone: `build/icon.ico`
+- Artefato: `release/MovieChooser-Setup-0.1.0.exe`
+
+```bash
+npm run dist
 ```
 
 ## Estrutura
@@ -61,6 +78,9 @@ src/
   services/     tmdb + recommendationService
   types/        contratos TypeScript
   lib/          utils, motion e mensagens de erro
+build/
+  icon.ico      ícone do instalador e do app
+  icon.png      arte fonte do ícone
 ```
 
 ## Observações
@@ -68,4 +88,5 @@ src/
 - A busca usa `discover` da TMDB com `watch_region=BR`
 - Itens sem título ou poster são ignorados no sorteio
 - O botão “Sortear novamente” evita repetir títulos recentes
+- A chave TMDB é embutida no build do renderer (`VITE_TMDB_API_KEY`) no momento do `npm run build`
 - Use Node 22+ se o Tailwind reportar problemas de binding nativo

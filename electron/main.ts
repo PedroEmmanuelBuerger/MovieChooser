@@ -1,9 +1,29 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, nativeImage } from "electron";
 import path from "node:path";
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
 
+function resolveAppIcon(): string | undefined {
+  const candidates = [
+    path.join(__dirname, "icon.ico"),
+    path.join(__dirname, "../build/icon.ico"),
+    path.join(process.resourcesPath, "icon.ico"),
+  ];
+
+  for (const candidate of candidates) {
+    const image = nativeImage.createFromPath(candidate);
+
+    if (!image.isEmpty()) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
 function createWindow(): void {
+  const icon = resolveAppIcon();
+
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -11,6 +31,8 @@ function createWindow(): void {
     minHeight: 640,
     show: false,
     backgroundColor: "#0a0a0a",
+    title: "MovieChooser",
+    ...(icon ? { icon } : {}),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -32,6 +54,10 @@ function createWindow(): void {
 }
 
 void app.whenReady().then(() => {
+  if (process.platform === "win32") {
+    app.setAppUserModelId("com.pedroemmanuelbuerger.moviechooser");
+  }
+
   ipcMain.handle("app:get-version", () => app.getVersion());
 
   createWindow();
