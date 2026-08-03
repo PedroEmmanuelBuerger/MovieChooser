@@ -10,7 +10,7 @@ async function main(): Promise<void> {
   console.log(`Title: ${recommendation.title}`);
   console.log(`Type: ${recommendation.type}`);
   console.log(`Rating: ${String(recommendation.rating)}`);
-  console.log(`Poster: ${recommendation.poster ?? "none"}`);
+  console.log(`Poster: ${recommendation.poster}`);
   console.log(
     `Description: ${recommendation.description.slice(0, 120) || "(empty)"}`,
   );

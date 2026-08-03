@@ -5,7 +5,7 @@ export interface RecommendationResult {
   id: number;
   title: string;
   description: string;
-  poster: string | null;
+  poster: string;
   rating: number;
   type: ContentTypeId;
   platformId: PlatformId;

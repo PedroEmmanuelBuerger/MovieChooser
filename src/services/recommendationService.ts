@@ -14,6 +14,7 @@ import type { Movie, TmdbPaginatedResponse, TVShow } from "@/types/tmdb";
 
 const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500";
 const MAX_RANDOM_PAGES = 20;
+const MAX_PAGE_ATTEMPTS = 5;
 
 export class RecommendationServiceError extends Error {
   readonly code: string | undefined;
@@ -42,12 +43,20 @@ function resolveContentTypeId(
   return typeof type === "string" ? type : type.id;
 }
 
-function buildPosterUrl(posterPath: string | null): string | null {
-  if (!posterPath) {
-    return null;
-  }
-
+function buildPosterUrl(posterPath: string): string {
   return `${TMDB_POSTER_BASE_URL}${posterPath}`;
+}
+
+function hasText(value: string): boolean {
+  return value.trim().length > 0;
+}
+
+function isValidMovie(movie: Movie): boolean {
+  return hasText(movie.title) && movie.posterPath !== null && hasText(movie.posterPath);
+}
+
+function isValidTVShow(show: TVShow): boolean {
+  return hasText(show.name) && show.posterPath !== null && hasText(show.posterPath);
 }
 
 function randomInt(min: number, max: number): number {
@@ -67,9 +76,17 @@ function pickRandomItem<T>(items: readonly T[]): T {
   return item;
 }
 
-async function fetchRandomPage<T>(
+function filterValidItems<T>(
+  items: readonly T[],
+  isValid: (item: T) => boolean,
+): T[] {
+  return items.filter(isValid);
+}
+
+async function fetchValidCandidates<T>(
   fetchPage: (page: number) => Promise<TmdbPaginatedResponse<T>>,
-): Promise<TmdbPaginatedResponse<T>> {
+  isValid: (item: T) => boolean,
+): Promise<T[]> {
   const firstPage = await fetchPage(1);
 
   if (firstPage.results.length === 0 || firstPage.totalResults === 0) {
@@ -83,28 +100,52 @@ async function fetchRandomPage<T>(
     1,
     Math.min(firstPage.totalPages, MAX_RANDOM_PAGES),
   );
-  const selectedPage = randomInt(1, maxPage);
+  const attemptedPages = new Set<number>();
 
-  if (selectedPage === 1) {
-    return firstPage;
+  for (let attempt = 0; attempt < MAX_PAGE_ATTEMPTS; attempt += 1) {
+    let pageNumber = randomInt(1, maxPage);
+
+    while (attemptedPages.has(pageNumber) && attemptedPages.size < maxPage) {
+      pageNumber = randomInt(1, maxPage);
+    }
+
+    attemptedPages.add(pageNumber);
+
+    const page =
+      pageNumber === 1 ? firstPage : await fetchPage(pageNumber);
+    const validItems = filterValidItems(page.results, isValid);
+
+    if (validItems.length > 0) {
+      return validItems;
+    }
   }
 
-  const pageResult = await fetchPage(selectedPage);
+  const fallbackValidItems = filterValidItems(firstPage.results, isValid);
 
-  if (pageResult.results.length === 0) {
-    return firstPage;
+  if (fallbackValidItems.length > 0) {
+    return fallbackValidItems;
   }
 
-  return pageResult;
+  throw new RecommendationServiceError(
+    "No valid titles found with title and poster for the selected filters.",
+    { code: "EMPTY_RESULTS" },
+  );
 }
 
 function mapMovieResult(
   movie: Movie,
   platformId: PlatformId,
 ): RecommendationResult {
+  if (movie.posterPath === null) {
+    throw new RecommendationServiceError(
+      "Selected movie is missing a poster.",
+      { code: "INVALID_ITEM" },
+    );
+  }
+
   return {
     id: movie.id,
-    title: movie.title,
+    title: movie.title.trim(),
     description: movie.overview,
     poster: buildPosterUrl(movie.posterPath),
     rating: movie.voteAverage,
@@ -118,9 +159,16 @@ function mapTVShowResult(
   show: TVShow,
   platformId: PlatformId,
 ): RecommendationResult {
+  if (show.posterPath === null) {
+    throw new RecommendationServiceError(
+      "Selected series is missing a poster.",
+      { code: "INVALID_ITEM" },
+    );
+  }
+
   return {
     id: show.id,
-    title: show.name,
+    title: show.name.trim(),
     description: show.overview,
     poster: buildPosterUrl(show.posterPath),
     rating: show.voteAverage,
@@ -139,26 +187,30 @@ export async function getRandomRecommendation(
 
   try {
     if (contentTypeId === "movie") {
-      const page = await fetchRandomPage((pageNumber) =>
-        discoverMoviesByWatchProvider({
+      const candidates = await fetchValidCandidates(
+        (pageNumber) =>
+          discoverMoviesByWatchProvider({
+            watchProviderIds,
+            watchRegion: TMDB_WATCH_REGION,
+            page: pageNumber,
+          }),
+        isValidMovie,
+      );
+
+      return mapMovieResult(pickRandomItem(candidates), platformId);
+    }
+
+    const candidates = await fetchValidCandidates(
+      (pageNumber) =>
+        discoverTVShowsByWatchProvider({
           watchProviderIds,
           watchRegion: TMDB_WATCH_REGION,
           page: pageNumber,
         }),
-      );
-
-      return mapMovieResult(pickRandomItem(page.results), platformId);
-    }
-
-    const page = await fetchRandomPage((pageNumber) =>
-      discoverTVShowsByWatchProvider({
-        watchProviderIds,
-        watchRegion: TMDB_WATCH_REGION,
-        page: pageNumber,
-      }),
+      isValidTVShow,
     );
 
-    return mapTVShowResult(pickRandomItem(page.results), platformId);
+    return mapTVShowResult(pickRandomItem(candidates), platformId);
   } catch (error) {
     if (error instanceof RecommendationServiceError) {
       throw error;
