@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { clearAllLocalData } from "@/services/accountService";
 import {
   createUserProfile,
   getUserProfile,
@@ -17,6 +18,7 @@ interface UseProfileResult {
   needsOnboarding: boolean;
   createProfile: (input: CreateProfileInput) => Promise<UserProfile | null>;
   updateProfile: (input: UpdateProfileInput) => Promise<UserProfile | null>;
+  deleteAccount: () => Promise<boolean>;
   refresh: () => Promise<void>;
 }
 
@@ -69,6 +71,19 @@ export function useProfile(): UseProfileResult {
     }
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    setError(null);
+
+    try {
+      await clearAllLocalData();
+      setProfile(null);
+      return true;
+    } catch {
+      setError("Não foi possível excluir a conta.");
+      return false;
+    }
+  }, []);
+
   return useMemo(
     () => ({
       profile,
@@ -77,8 +92,17 @@ export function useProfile(): UseProfileResult {
       needsOnboarding: !loading && profile === null,
       createProfile,
       updateProfile,
+      deleteAccount,
       refresh,
     }),
-    [profile, loading, error, createProfile, updateProfile, refresh],
+    [
+      profile,
+      loading,
+      error,
+      createProfile,
+      updateProfile,
+      deleteAccount,
+      refresh,
+    ],
   );
 }

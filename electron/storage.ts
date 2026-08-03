@@ -341,6 +341,19 @@ function saveMovieInteractions(
   return store.get("movieInteractions");
 }
 
+function clearAllData(): void {
+  store.clear();
+  store.set("recommendationHistory", []);
+  store.set("watchedItems", []);
+  store.set("settings", DEFAULT_SETTINGS);
+  store.set("userProfile", null);
+  store.set("unlockedAchievements", []);
+  store.set("statsSnapshot", null);
+  store.set("watchTimeCache", {});
+  store.set("userPreferences", DEFAULT_USER_PREFERENCES);
+  store.set("movieInteractions", []);
+}
+
 export function registerStorageIpc(): void {
   ipcMain.handle("storage:get-history", () => getHistory());
   ipcMain.handle("storage:add-history", (_event, item: HistoryItem) =>
@@ -406,4 +419,7 @@ export function registerStorageIpc(): void {
     "storage:save-interactions",
     (_event, items: MovieInteraction[]) => saveMovieInteractions(items),
   );
+  ipcMain.handle("storage:clear-all", () => {
+    clearAllData();
+  });
 }

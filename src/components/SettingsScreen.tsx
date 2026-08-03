@@ -1,5 +1,10 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { Settings2 } from "lucide-react";
+import { Settings2, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { DeleteAccountDialog } from "@/components/DeleteAccountDialog";
+import { Button } from "@/components/ui/button";
+import { useLibrary } from "@/hooks/useLibrary";
+import { useProfileContext } from "@/hooks/useProfileContext";
 import { useSettingsContext } from "@/hooks/useSettingsContext";
 import { EASE_OUT_EXPO } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -12,7 +17,35 @@ export function SettingsScreen() {
     error,
     setExcludeWatched,
     setConsiderPreferences,
+    refresh: refreshSettings,
   } = useSettingsContext();
+  const { deleteAccount } = useProfileContext();
+  const { history, watched } = useLibrary();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  async function handleConfirmDelete() {
+    setDeleting(true);
+    setDeleteError(null);
+
+    const ok = await deleteAccount();
+
+    if (!ok) {
+      setDeleteError("Não foi possível excluir a conta. Tente novamente.");
+      setDeleting(false);
+      return;
+    }
+
+    await Promise.all([
+      history.refresh(),
+      watched.refresh(),
+      refreshSettings(),
+    ]);
+
+    setDeleting(false);
+    setConfirmOpen(false);
+  }
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10">
@@ -113,6 +146,59 @@ export function SettingsScreen() {
           </label>
         </div>
       </motion.section>
+
+      <motion.section
+        className="mt-6 rounded-2xl border border-destructive/30 bg-card/70 p-6"
+        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.1, ease: EASE_OUT_EXPO }}
+      >
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-destructive/15 text-destructive">
+            <Trash2 className="size-5" aria-hidden />
+          </div>
+          <div>
+            <h2 className="font-display text-xl font-semibold text-foreground">
+              Conta
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Remover perfil e dados locais deste dispositivo
+            </p>
+          </div>
+        </div>
+
+        {deleteError ? (
+          <p className="mb-3 text-sm text-destructive" role="alert">
+            {deleteError}
+          </p>
+        ) : null}
+
+        <Button
+          type="button"
+          variant="outline"
+          className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => {
+            setDeleteError(null);
+            setConfirmOpen(true);
+          }}
+        >
+          <Trash2 className="size-4" aria-hidden />
+          Excluir conta
+        </Button>
+      </motion.section>
+
+      <DeleteAccountDialog
+        open={confirmOpen}
+        loading={deleting}
+        onCancel={() => {
+          if (!deleting) {
+            setConfirmOpen(false);
+          }
+        }}
+        onConfirm={() => {
+          void handleConfirmDelete();
+        }}
+      />
     </main>
   );
 }

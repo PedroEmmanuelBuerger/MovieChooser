@@ -56,6 +56,7 @@ export interface ElectronAPI {
   saveMovieInteractions: (
     items: MovieInteraction[],
   ) => Promise<MovieInteraction[]>;
+  clearAllData: () => Promise<void>;
 }
 
 export type { CreateProfileInput };

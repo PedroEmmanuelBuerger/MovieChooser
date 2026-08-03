@@ -77,4 +77,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
     items: MovieInteraction[],
   ): Promise<MovieInteraction[]> =>
     ipcRenderer.invoke("storage:save-interactions", items),
+  clearAllData: (): Promise<void> => ipcRenderer.invoke("storage:clear-all"),
 });

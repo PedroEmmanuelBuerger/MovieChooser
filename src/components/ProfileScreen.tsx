@@ -12,7 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { useRef, useState } from "react";
-import { Check, Pencil, Trophy } from "lucide-react";
+import { Check, ImagePlus, Pencil, Trophy } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,7 @@ export function ProfileScreen() {
   const [bio, setBio] = useState(profile?.bio ?? "");
   const [avatar, setAvatar] = useState(profile?.avatar ?? "default:crimson");
   const [saving, setSaving] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   if (!profile) {
     return (
@@ -113,6 +114,7 @@ export function ProfileScreen() {
     setName(profile.name);
     setBio(profile.bio ?? "");
     setAvatar(profile.avatar ?? "default:crimson");
+    setAvatarError(null);
     setEditing(true);
   }
 
@@ -140,14 +142,14 @@ export function ProfileScreen() {
       >
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
           <AvatarDisplay
-            name={profile.name}
-            {...(profile.avatar ? { avatar: profile.avatar } : {})}
+            name={editing ? name || profile.name : profile.name}
+            avatar={editing ? avatar : (profile.avatar ?? "default:crimson")}
             size="xl"
           />
           <div className="min-w-0 flex-1">
             {editing ? (
               <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {DEFAULT_AVATAR_OPTIONS.map((option) => (
                     <button
                       key={option.id}
@@ -161,6 +163,7 @@ export function ProfileScreen() {
                       style={{ backgroundColor: option.color }}
                       aria-label={option.label}
                       onClick={() => {
+                        setAvatarError(null);
                         setAvatar(option.id);
                       }}
                     />
@@ -173,7 +176,8 @@ export function ProfileScreen() {
                       fileRef.current?.click();
                     }}
                   >
-                    Upload
+                    <ImagePlus className="size-3.5" aria-hidden />
+                    Enviar imagem
                   </Button>
                   <input
                     ref={fileRef}
@@ -182,17 +186,34 @@ export function ProfileScreen() {
                     className="hidden"
                     onChange={(event) => {
                       const file = event.target.files?.[0];
+                      event.target.value = "";
 
                       if (!file) {
                         return;
                       }
 
-                      void compressImageToAvatarDataUrl(file).then((dataUrl) => {
-                        setAvatar(dataUrl);
-                      });
+                      setAvatarError(null);
+                      void compressImageToAvatarDataUrl(file)
+                        .then((dataUrl) => {
+                          setAvatar(dataUrl);
+                        })
+                        .catch(() => {
+                          setAvatarError(
+                            "Não foi possível carregar a imagem. Tente outro arquivo.",
+                          );
+                        });
                     }}
                   />
                 </div>
+                {avatarError ? (
+                  <p className="text-sm text-destructive" role="alert">
+                    {avatarError}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Escolha uma cor ou envie uma foto do seu dispositivo.
+                  </p>
+                )}
                 <input
                   value={name}
                   onChange={(event) => {
@@ -227,6 +248,7 @@ export function ProfileScreen() {
                     size="sm"
                     variant="ghost"
                     onClick={() => {
+                      setAvatarError(null);
                       setEditing(false);
                     }}
                   >
