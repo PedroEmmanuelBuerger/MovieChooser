@@ -6,17 +6,14 @@ import { MovieSearchBar } from "@/components/MovieSearchBar";
 import { WatchedMoviesList } from "@/components/WatchedMoviesList";
 import { useLibrary } from "@/hooks/useLibrary";
 import { EASE_OUT_EXPO } from "@/lib/motion";
+import { MovieHistoryService } from "@/services/movieHistoryService";
 import { MovieSearchService } from "@/services/movieSearchService";
-import {
-  addMovieInteraction,
-  rebuildPreferencesFromWatched,
-} from "@/services/preferenceService";
-import { markAsWatched } from "@/services/storageService";
+import { addMovieInteraction } from "@/services/preferenceService";
 import type {
   SearchMovieDetails,
   SearchMovieResult,
 } from "@/types/movie-search";
-import type { UserRating, WatchedItem } from "@/types/watched";
+import type { UserRating } from "@/types/watched";
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -92,35 +89,11 @@ export function MovieSearchPage() {
     [watched.items],
   );
 
-  async function markMovieWatched(movie: SearchMovieResult | SearchMovieDetails) {
-    const genre = movie.genreNames.join(", ") || "Filme";
-    const payload: WatchedItem = {
-      id: movie.id,
-      title: movie.title,
-      description: movie.overview,
-      poster: movie.poster ?? "",
-      platform: "Pesquisa",
-      platformId: "netflix",
-      type: "movie",
-      genre,
-      ratingTmdb: movie.ratingTmdb,
-      userRating: null,
-      watchedAt: new Date().toISOString(),
-    };
-
-    await markAsWatched(payload);
-    await addMovieInteraction({
-      movieId: movie.id,
-      action: "WATCHED",
-      date: new Date().toISOString(),
-    });
+  async function markMovieWatched(
+    movie: SearchMovieResult | SearchMovieDetails,
+  ) {
+    await MovieHistoryService.markAsWatched(MovieSearchService.toMovie(movie));
     await watched.refresh();
-    await rebuildPreferencesFromWatched([
-      ...watched.items.filter(
-        (item) => !(item.type === "movie" && item.id === movie.id),
-      ),
-      payload,
-    ]);
   }
 
   async function dislikeMovie(movieId: number) {
@@ -160,7 +133,8 @@ export function MovieSearchPage() {
           Pesquisar Filmes
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Busque filmes, marque como assistidos e construa suas preferências.
+          Busque filmes, marque como assistidos e dê suas notas. Tudo fica salvo
+          localmente.
         </p>
       </motion.header>
 
@@ -183,7 +157,9 @@ export function MovieSearchPage() {
           ) : null}
 
           {results.map((movie) => {
-            const item = watchedMovies.find((watchedItem) => watchedItem.id === movie.id);
+            const item = watchedMovies.find(
+              (watchedItem) => watchedItem.id === movie.id,
+            );
 
             return (
               <MovieResultCard
@@ -235,13 +211,18 @@ export function MovieSearchPage() {
             return;
           }
 
-          void watched.setUserRating("movie", details.id, rating);
-          void addMovieInteraction({
-            movieId: details.id,
-            action: "RATED",
-            date: new Date().toISOString(),
-            rating,
-          });
+          void MovieHistoryService.updateRating(details.id, rating).then(() =>
+            watched.refresh(),
+          );
+        }}
+        onClearRating={() => {
+          if (!details) {
+            return;
+          }
+
+          void MovieHistoryService.removeRating(details.id).then(() =>
+            watched.refresh(),
+          );
         }}
         onDislike={() => {
           if (details) {

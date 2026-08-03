@@ -13,7 +13,7 @@ import {
   isSurpriseGenre,
   type GenreSelection,
 } from "@/types/genre";
-import type { PlatformId, StreamingPlatform } from "@/types/platform";
+import type { StreamingPlatform, StreamingPlatformId } from "@/types/platform";
 import type { RecommendationResult } from "@/types/recommendation";
 import type { Movie, TmdbPaginatedResponse, TVShow } from "@/types/tmdb";
 
@@ -39,7 +39,7 @@ export class RecommendationServiceError extends Error {
 export type RecommendationSearchMode = "random" | "expand";
 
 export interface GetRecommendationInput {
-  platform: StreamingPlatform | PlatformId;
+  platform: StreamingPlatform | StreamingPlatformId;
   type: ContentTypeOption | ContentTypeId;
   genre: GenreSelection;
   excludeIds?: readonly number[];
@@ -55,8 +55,8 @@ export interface GetRecommendationInput {
 }
 
 function resolvePlatformId(
-  platform: StreamingPlatform | PlatformId,
-): PlatformId {
+  platform: StreamingPlatform | StreamingPlatformId,
+): StreamingPlatformId {
   return typeof platform === "string" ? platform : platform.id;
 }
 
@@ -326,7 +326,7 @@ async function fetchValidCandidates<T extends { id: number }>(
 
 function mapMovieResult(
   movie: Movie,
-  platformId: PlatformId,
+  platformId: StreamingPlatformId,
   genre: GenreSelection,
 ): RecommendationResult {
   if (movie.posterPath === null) {
@@ -355,7 +355,7 @@ function mapMovieResult(
 
 function mapTVShowResult(
   show: TVShow,
-  platformId: PlatformId,
+  platformId: StreamingPlatformId,
   genre: GenreSelection,
 ): RecommendationResult {
   if (show.posterPath === null) {

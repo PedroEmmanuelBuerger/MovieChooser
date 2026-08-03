@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
+import { RatingComponent } from "@/components/RatingComponent";
 import { Button } from "@/components/ui/button";
-import { UserRatingPicker } from "@/components/UserRatingPicker";
 import { EASE_OUT_EXPO } from "@/lib/motion";
 import type { SearchMovieDetails } from "@/types/movie-search";
 import type { UserRating } from "@/types/watched";
@@ -14,6 +14,7 @@ interface MovieDetailsModalProps {
   onClose: () => void;
   onMarkWatched: () => void;
   onRate: (rating: UserRating) => void;
+  onClearRating: () => void;
   onDislike: () => void;
 }
 
@@ -25,6 +26,7 @@ export function MovieDetailsModal({
   onClose,
   onMarkWatched,
   onRate,
+  onClearRating,
   onDislike,
 }: MovieDetailsModalProps) {
   const reduceMotion = useReducedMotion();
@@ -54,6 +56,11 @@ export function MovieDetailsModal({
                   {movie.year}
                   {movie.runtime ? ` · ${String(movie.runtime)} min` : ""}
                 </p>
+                {movie.originalTitle && movie.originalTitle !== movie.title ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {movie.originalTitle}
+                  </p>
+                ) : null}
               </div>
               <Button type="button" size="icon" variant="ghost" onClick={onClose}>
                 <X aria-hidden />
@@ -84,6 +91,9 @@ export function MovieDetailsModal({
                   Elenco:{" "}
                   {movie.cast.map((person) => person.name).join(", ") || "—"}
                 </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Nota TMDB: {movie.ratingTmdb.toFixed(1)}
+                </p>
               </div>
             </div>
 
@@ -99,8 +109,14 @@ export function MovieDetailsModal({
                 </div>
               ) : (
                 <div>
-                  <p className="mb-2 text-sm text-muted-foreground">Sua nota</p>
-                  <UserRatingPicker value={userRating} onChange={onRate} />
+                  <p className="mb-2 text-sm text-muted-foreground">
+                    Sua nota (0 a 10, com meias)
+                  </p>
+                  <RatingComponent
+                    value={userRating}
+                    onChange={onRate}
+                    onClear={onClearRating}
+                  />
                 </div>
               )}
             </div>

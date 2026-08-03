@@ -9,6 +9,7 @@ import {
   putSearchCache,
   readSearchCache,
 } from "@/services/preferenceService";
+import { createMovieId, type Movie } from "@/types/movie";
 import type {
   SearchMovieDetails,
   SearchMovieResult,
@@ -71,7 +72,58 @@ function dedupeById(items: SearchMovieResult[]): SearchMovieResult[] {
   return unique;
 }
 
+function toMovieFromResult(movie: SearchMovieResult): Movie {
+  return {
+    id: createMovieId(movie.id),
+    externalId: movie.id,
+    title: movie.title,
+    originalTitle: movie.originalTitle,
+    overview: movie.overview,
+    posterUrl: movie.poster,
+    releaseDate: "",
+    year: movie.year,
+    genres: movie.genreNames,
+    actors: [],
+    director: [],
+    ratingTmdb: movie.ratingTmdb,
+  };
+}
+
+function toMovieFromDetails(movie: SearchMovieDetails): Movie {
+  return {
+    id: createMovieId(movie.id),
+    externalId: movie.id,
+    title: movie.title,
+    originalTitle: movie.originalTitle,
+    overview: movie.overview,
+    posterUrl: movie.poster,
+    releaseDate: movie.releaseDate,
+    year: movie.year,
+    genres: movie.genreNames,
+    actors: movie.cast.map((person) => ({
+      id: person.id,
+      name: person.name,
+    })),
+    director: movie.directors.map((person) => ({
+      id: person.id,
+      name: person.name,
+      ...(person.job ? { job: person.job } : {}),
+    })),
+    ratingTmdb: movie.ratingTmdb,
+    runtime: movie.runtime,
+    keywords: movie.keywords,
+  };
+}
+
 export const MovieSearchService = {
+  toMovie(movie: SearchMovieResult | SearchMovieDetails): Movie {
+    if ("cast" in movie) {
+      return toMovieFromDetails(movie);
+    }
+
+    return toMovieFromResult(movie);
+  },
+
   async search(
     query: string,
     signal?: AbortSignal,

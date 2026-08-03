@@ -1,6 +1,7 @@
 import { CheckCircle2, Star, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { SearchMovieResult } from "@/types/movie-search";
+import { formatUserRating } from "@/types/watched";
 
 interface MovieResultCardProps {
   movie: SearchMovieResult;
@@ -76,7 +77,7 @@ export function MovieResultCard({
               Assistido
             </span>
             {userRating !== null ? (
-              <span>Minha nota: {String(userRating)}</span>
+              <span>Minha nota: {formatUserRating(userRating)}</span>
             ) : null}
             {watchedAt ? (
               <span className="text-muted-foreground">

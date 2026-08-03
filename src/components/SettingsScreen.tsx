@@ -77,11 +77,11 @@ export function SettingsScreen() {
             />
             <span className="min-w-0">
               <span className="block font-medium text-foreground">
-                Não recomendar conteúdos já assistidos
+                Ignorar filmes já assistidos
               </span>
               <span className="mt-1 block text-sm text-muted-foreground">
-                Quando ativado, o MovieChooser irá ignorar filmes, séries e
-                animes marcados como assistidos.
+                Quando ativado, o randomizador consulta o histórico local e
+                remove títulos já assistidos da seleção.
               </span>
             </span>
           </label>

@@ -2,6 +2,7 @@ import {
   Clapperboard,
   Crown,
   Popcorn,
+  Search,
   Sparkles,
   Tv,
   type LucideIcon,
@@ -14,4 +15,5 @@ export const PLATFORM_ICONS: Record<PlatformId, LucideIcon> = {
   crunchyroll: Sparkles,
   "prime-video": Popcorn,
   "disney-plus": Crown,
+  search: Search,
 };

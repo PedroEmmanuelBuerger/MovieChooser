@@ -1,5 +1,5 @@
 import { Star } from "lucide-react";
-import type { WatchedItem } from "@/types/watched";
+import { formatUserRating, type WatchedItem } from "@/types/watched";
 
 interface WatchedMoviesListProps {
   items: readonly WatchedItem[];
@@ -22,14 +22,12 @@ export function WatchedMoviesList({
 }: WatchedMoviesListProps) {
   const genres = Array.from(
     new Set(
-      items
-        .flatMap((item) =>
-          item.genre
-            .split(",")
-            .map((part) => part.trim())
-            .filter(Boolean),
-        )
-        .concat(items.map((item) => item.genre).filter(Boolean)),
+      items.flatMap((item) =>
+        item.genre
+          .split(",")
+          .map((part) => part.trim())
+          .filter(Boolean),
+      ),
     ),
   ).sort((a, b) => a.localeCompare(b));
 
@@ -41,7 +39,7 @@ export function WatchedMoviesList({
         : item.title.toLowerCase().includes(query.trim().toLowerCase()),
     )
     .filter((item) =>
-      minRating === null ? true : (item.userRating ?? 0) >= minRating,
+      minRating === null ? true : (item.userRating ?? -1) >= minRating,
     )
     .filter((item) =>
       genreFilter.length === 0 ? true : item.genre.includes(genreFilter),
@@ -73,9 +71,9 @@ export function WatchedMoviesList({
           className="h-10 rounded-lg border border-border bg-secondary/40 px-3 text-sm outline-none"
         >
           <option value="">Nota mínima</option>
-          {[6, 7, 8, 9, 10].map((value) => (
+          {[0, 5, 6, 7, 7.5, 8, 8.5, 9, 9.5, 10].map((value) => (
             <option key={value} value={value}>
-              {String(value)}+
+              {formatUserRating(value)}+
             </option>
           ))}
         </select>
@@ -106,19 +104,26 @@ export function WatchedMoviesList({
               key={`${item.type}:${String(item.id)}`}
               className="flex items-center gap-3 rounded-lg border border-border/50 bg-secondary/20 p-2"
             >
-              <img
-                src={item.poster}
-                alt=""
-                className="size-12 rounded object-cover"
-              />
+              {item.poster ? (
+                <img
+                  src={item.poster}
+                  alt=""
+                  className="size-12 rounded object-cover"
+                />
+              ) : (
+                <div className="flex size-12 items-center justify-center rounded bg-muted text-[10px] text-muted-foreground">
+                  —
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{item.title}</p>
-                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1">
                     <Star className="size-3 fill-primary text-primary" />
-                    {item.userRating ?? "—"}
+                    Minha nota: {formatUserRating(item.userRating)}
                   </span>
                   <span>
+                    Assistido:{" "}
                     {new Intl.DateTimeFormat("pt-BR").format(
                       new Date(item.watchedAt),
                     )}

@@ -9,7 +9,7 @@ import {
   getUserPreferences,
 } from "@/services/preferenceService";
 import { discoverMoviesByWatchProvider, getMovieDetails } from "@/services/tmdb";
-import type { PlatformId } from "@/types/platform";
+import type { StreamingPlatformId } from "@/types/platform";
 import type { ScoredRecommendation } from "@/types/preferences";
 import type { WatchedItem } from "@/types/watched";
 
@@ -100,7 +100,7 @@ function scoreCandidate(input: {
 export const RecommendationService = {
   async getPersonalizedMovies(input: {
     watched: readonly WatchedItem[];
-    platformId?: PlatformId;
+    platformId?: StreamingPlatformId;
     signal?: AbortSignal;
     limit?: number;
   }): Promise<ScoredRecommendation[]> {

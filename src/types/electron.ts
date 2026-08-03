@@ -31,7 +31,7 @@ export interface ElectronAPI {
   updateWatchedRating: (payload: {
     type: ContentTypeId;
     id: number;
-    userRating: UserRating;
+    userRating: UserRating | null;
   }) => Promise<WatchedItem[]>;
   getAppSettings: () => Promise<AppSettings>;
   updateAppSettings: (partial: Partial<AppSettings>) => Promise<AppSettings>;

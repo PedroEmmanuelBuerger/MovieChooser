@@ -1,5 +1,5 @@
 import type { ContentTypeId } from "@/types/content-type";
-import type { PlatformId } from "@/types/platform";
+import type { StreamingPlatformId } from "@/types/platform";
 
 export type HistoryTab = "movie" | "series";
 
@@ -9,7 +9,7 @@ export interface HistoryItem {
   description: string;
   poster: string;
   platform: string;
-  platformId: PlatformId;
+  platformId: StreamingPlatformId;
   type: ContentTypeId;
   genre: string;
   rating: number;

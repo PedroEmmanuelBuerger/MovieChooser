@@ -111,7 +111,7 @@ export async function markAsWatched(
 export async function updateWatchedRating(payload: {
   type: ContentTypeId;
   id: number;
-  userRating: UserRating;
+  userRating: UserRating | null;
 }): Promise<WatchedItem[]> {
   if (hasElectronApi() && window.electronAPI) {
     return window.electronAPI.updateWatchedRating(payload);

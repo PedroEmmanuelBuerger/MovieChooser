@@ -8,7 +8,10 @@ export type PlatformId =
   | "hbo-max"
   | "crunchyroll"
   | "prime-video"
-  | "disney-plus";
+  | "disney-plus"
+  | "search";
+
+export type StreamingPlatformId = Exclude<PlatformId, "search">;
 
 export interface HistoryItem {
   id: number;
@@ -16,14 +19,14 @@ export interface HistoryItem {
   description: string;
   poster: string;
   platform: string;
-  platformId: PlatformId;
+  platformId: StreamingPlatformId;
   type: ContentTypeId;
   genre: string;
   rating: number;
   recommendedAt: string;
 }
 
-export type UserRating = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type UserRating = number;
 
 export interface WatchedItem {
   id: number;
@@ -183,7 +186,7 @@ function markAsWatched(item: WatchedItem): {
 function updateUserRating(
   type: ContentTypeId,
   id: number,
-  userRating: UserRating,
+  userRating: UserRating | null,
 ): WatchedItem[] {
   const items = getWatched().map((item) => {
     if (item.type === type && item.id === id) {
@@ -351,7 +354,11 @@ export function registerStorageIpc(): void {
     "storage:update-rating",
     (
       _event,
-      payload: { type: ContentTypeId; id: number; userRating: UserRating },
+      payload: {
+        type: ContentTypeId;
+        id: number;
+        userRating: UserRating | null;
+      },
     ) => updateUserRating(payload.type, payload.id, payload.userRating),
   );
   ipcMain.handle("storage:get-settings", () => getSettings());

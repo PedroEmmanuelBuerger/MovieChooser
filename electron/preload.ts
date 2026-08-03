@@ -32,7 +32,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateWatchedRating: (payload: {
     type: ContentTypeId;
     id: number;
-    userRating: UserRating;
+    userRating: UserRating | null;
   }): Promise<WatchedItem[]> =>
     ipcRenderer.invoke("storage:update-rating", payload),
   getAppSettings: (): Promise<AppSettings> =>

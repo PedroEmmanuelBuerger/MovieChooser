@@ -1,6 +1,6 @@
 import type { ContentTypeId } from "@/types/content-type";
 import type { GenreId } from "@/types/genre";
-import type { PlatformId } from "@/types/platform";
+import type { StreamingPlatformId } from "@/types/platform";
 
 export interface RecommendationResult {
   id: number;
@@ -12,6 +12,6 @@ export interface RecommendationResult {
   genre: string;
   genreId: GenreId | "random";
   isSurpriseMode: boolean;
-  platformId: PlatformId;
+  platformId: StreamingPlatformId;
   mediaType: "movie" | "tv";
 }

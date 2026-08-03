@@ -3,7 +3,7 @@ import type { PlatformId } from "@/types/platform";
 
 export type WatchedTab = "movie" | "series";
 
-export type UserRating = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type UserRating = number;
 
 export interface WatchedItem {
   id: number;
@@ -43,7 +43,19 @@ export function getWatchedContentKey(item: WatchedItem): string {
 }
 
 export function isValidUserRating(value: number): value is UserRating {
-  return Number.isInteger(value) && value >= 1 && value <= 10;
+  if (!Number.isFinite(value) || value < 0 || value > 10) {
+    return false;
+  }
+
+  return Math.abs(value * 2 - Math.round(value * 2)) < 1e-9;
+}
+
+export function formatUserRating(value: number | null): string {
+  if (value === null) {
+    return "—";
+  }
+
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 export function filterWatchedByTab(
