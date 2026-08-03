@@ -28,11 +28,14 @@ interface RecommendationCardProps {
   genreName: string;
   isSurpriseMode: boolean;
   isWatched: boolean;
+  isAllWatched: boolean;
   markingWatched: boolean;
   loading: boolean;
   error: string | null;
   onShuffle: () => void;
   onRetry: () => void;
+  onSearchMore: () => void;
+  onAllowWatched: () => void;
   onChangeFilters: () => void;
   onMarkWatched: () => void;
 }
@@ -78,11 +81,14 @@ export function RecommendationCard({
   genreName,
   isSurpriseMode,
   isWatched,
+  isAllWatched,
   markingWatched,
   loading,
   error,
   onShuffle,
   onRetry,
+  onSearchMore,
+  onAllowWatched,
   onChangeFilters,
   onMarkWatched,
 }: RecommendationCardProps) {
@@ -155,6 +161,12 @@ export function RecommendationCard({
                           {genreName}
                         </span>
                       )}
+                      {isWatched ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                          <CheckCircle2 className="size-3.5" aria-hidden />
+                          Assistido
+                        </span>
+                      ) : null}
                     </div>
                   </CardHeader>
 
@@ -245,35 +257,79 @@ export function RecommendationCard({
                 <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
                   <AlertCircle className="size-6" aria-hidden />
                 </div>
-                <CardTitle>Nenhuma recomendação encontrada</CardTitle>
+                <CardTitle>
+                  {isAllWatched
+                    ? "Todos os títulos já foram assistidos"
+                    : "Nenhuma recomendação encontrada"}
+                </CardTitle>
                 <CardDescription className="max-w-md text-base">
                   {error ??
-                    "Não foi possível encontrar um título com os filtros escolhidos."}
+                    (isAllWatched
+                      ? "Você já marcou todos os conteúdos encontrados como assistidos."
+                      : "Não foi possível encontrar um título com os filtros escolhidos.")}
                 </CardDescription>
               </CardHeader>
-              <CardFooter className="flex-col justify-center gap-3 sm:flex-row">
-                <Button
-                  type="button"
-                  size="lg"
-                  disabled={loading}
-                  onClick={onRetry}
-                >
-                  {loading ? (
-                    <Loader2 className="animate-spin" aria-hidden />
-                  ) : (
-                    <RefreshCw aria-hidden />
-                  )}
-                  Tentar novamente
-                </Button>
-                <Button
-                  type="button"
-                  size="lg"
-                  variant="outline"
-                  disabled={loading}
-                  onClick={onChangeFilters}
-                >
-                  Mudar filtros
-                </Button>
+              <CardFooter className="flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
+                {isAllWatched ? (
+                  <>
+                    <Button
+                      type="button"
+                      size="lg"
+                      disabled={loading}
+                      onClick={onSearchMore}
+                    >
+                      {loading ? (
+                        <Loader2 className="animate-spin" aria-hidden />
+                      ) : (
+                        <RefreshCw aria-hidden />
+                      )}
+                      Buscar mais opções
+                    </Button>
+                    <Button
+                      type="button"
+                      size="lg"
+                      variant="secondary"
+                      disabled={loading}
+                      onClick={onAllowWatched}
+                    >
+                      Permitir conteúdos assistidos
+                    </Button>
+                    <Button
+                      type="button"
+                      size="lg"
+                      variant="outline"
+                      disabled={loading}
+                      onClick={onChangeFilters}
+                    >
+                      Mudar filtros
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      size="lg"
+                      disabled={loading}
+                      onClick={onRetry}
+                    >
+                      {loading ? (
+                        <Loader2 className="animate-spin" aria-hidden />
+                      ) : (
+                        <RefreshCw aria-hidden />
+                      )}
+                      Tentar novamente
+                    </Button>
+                    <Button
+                      type="button"
+                      size="lg"
+                      variant="outline"
+                      disabled={loading}
+                      onClick={onChangeFilters}
+                    >
+                      Mudar filtros
+                    </Button>
+                  </>
+                )}
               </CardFooter>
             </Card>
           </motion.div>

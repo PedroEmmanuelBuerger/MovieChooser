@@ -1,9 +1,15 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { CheckCircle2, Clapperboard, History, Home } from "lucide-react";
+import {
+  CheckCircle2,
+  Clapperboard,
+  History,
+  Home,
+  Settings,
+} from "lucide-react";
 import { EASE_OUT_EXPO } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-export type AppSection = "discover" | "history" | "watched";
+export type AppSection = "discover" | "history" | "watched" | "settings";
 
 interface AppSidebarProps {
   activeSection: AppSection;
@@ -18,6 +24,7 @@ const NAV_ITEMS: {
   { id: "discover", label: "Descobrir", icon: Home },
   { id: "history", label: "Histórico", icon: History },
   { id: "watched", label: "Assistidos", icon: CheckCircle2 },
+  { id: "settings", label: "Configurações", icon: Settings },
 ];
 
 export function AppSidebar({ activeSection, onNavigate }: AppSidebarProps) {

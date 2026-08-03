@@ -56,6 +56,12 @@ export function HistoryCard({
             <span className="rounded-full border border-border bg-secondary px-2.5 py-0.5 text-[11px] text-secondary-foreground">
               {item.type === "movie" ? "Filme" : "Série/Anime"}
             </span>
+            {isWatched ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
+                <CheckCircle2 className="size-3" aria-hidden />
+                Assistido
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -74,7 +80,7 @@ export function HistoryCard({
           {isWatched ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
               <CheckCircle2 className="size-3.5" aria-hidden />
-              Assistido
+              Já na biblioteca
             </span>
           ) : (
             <Button

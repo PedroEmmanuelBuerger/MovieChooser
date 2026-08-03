@@ -23,7 +23,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.electron.json --noEmit",
     "test:tmdb": "vite-node scripts/test-tmdb.ts",
     "test:recommendation": "vite-node scripts/test-recommendation.ts",
-    "test:storage": "vite-node scripts/test-storage.ts"
+    "test:storage": "vite-node scripts/test-storage.ts",
+    "test:settings": "vite-node scripts/test-settings.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

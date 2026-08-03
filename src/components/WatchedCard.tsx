@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { Star } from "lucide-react";
+import { CheckCircle2, Star } from "lucide-react";
 import { UserRatingPicker } from "@/components/UserRatingPicker";
 import { listItemVariants } from "@/lib/motion";
 import type { UserRating, WatchedItem } from "@/types/watched";
@@ -48,6 +48,10 @@ export function WatchedCard({ item, onRatingChange }: WatchedCardProps) {
             </span>
             <span className="rounded-full border border-border bg-secondary px-2.5 py-0.5 text-[11px] text-secondary-foreground">
               {item.type === "movie" ? "Filme" : "Série/Anime"}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
+              <CheckCircle2 className="size-3" aria-hidden />
+              Assistido
             </span>
           </div>
         </div>

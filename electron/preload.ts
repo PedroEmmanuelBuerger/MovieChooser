@@ -6,6 +6,10 @@ import type {
   WatchedItem,
 } from "./storage";
 
+interface AppSettings {
+  excludeWatched: boolean;
+}
+
 contextBridge.exposeInMainWorld("electronAPI", {
   getAppVersion: (): Promise<string> => ipcRenderer.invoke("app:get-version"),
   getRecommendationHistory: (): Promise<HistoryItem[]> =>
@@ -24,4 +28,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     userRating: UserRating;
   }): Promise<WatchedItem[]> =>
     ipcRenderer.invoke("storage:update-rating", payload),
+  getAppSettings: (): Promise<AppSettings> =>
+    ipcRenderer.invoke("storage:get-settings"),
+  updateAppSettings: (partial: Partial<AppSettings>): Promise<AppSettings> =>
+    ipcRenderer.invoke("storage:update-settings", partial),
 });

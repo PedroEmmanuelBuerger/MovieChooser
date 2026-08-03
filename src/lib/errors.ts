@@ -10,6 +10,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   NOT_FOUND: "O recurso solicitado não foi encontrado na TMDB.",
   EMPTY_RESULTS:
     "Não encontramos títulos válidos para essa combinação. Tente outra plataforma ou tipo.",
+  ALL_WATCHED:
+    "Você já marcou todos os conteúdos encontrados como assistidos.",
   INVALID_ITEM: "O título sorteado estava incompleto. Tente novamente.",
   HTTP_ERROR: "A TMDB retornou um erro inesperado. Tente novamente.",
   UNKNOWN: "Ocorreu um erro inesperado ao buscar a recomendação.",

@@ -23,6 +23,8 @@ const MAX_PAGE_ATTEMPTS = 5;
 const SURPRISE_MAX_RANDOM_PAGES = 40;
 const SURPRISE_MAX_PAGE_ATTEMPTS = 8;
 const SURPRISE_MAX_CANDIDATES = 60;
+const EXPAND_MAX_PAGES = 12;
+const EXPAND_MAX_CANDIDATES = 80;
 
 export class RecommendationServiceError extends Error {
   readonly code: string | undefined;
@@ -34,12 +36,17 @@ export class RecommendationServiceError extends Error {
   }
 }
 
+export type RecommendationSearchMode = "random" | "expand";
+
 export interface GetRecommendationInput {
   platform: StreamingPlatform | PlatformId;
   type: ContentTypeOption | ContentTypeId;
   genre: GenreSelection;
   excludeIds?: readonly number[];
-  excludeWatchedKeys?: readonly string[];
+  excludeWatched?: boolean;
+  watchedIds?: ReadonlySet<number> | readonly number[];
+  allowWatchedOverride?: boolean;
+  searchMode?: RecommendationSearchMode;
   preferHighUserRatings?: boolean;
   signal?: AbortSignal;
 }
@@ -101,6 +108,20 @@ function shuffleItems<T>(items: readonly T[]): T[] {
   return shuffled;
 }
 
+function toIdSet(
+  value: ReadonlySet<number> | readonly number[] | undefined,
+): Set<number> {
+  if (!value) {
+    return new Set<number>();
+  }
+
+  if (value instanceof Set) {
+    return new Set<number>(Array.from(value));
+  }
+
+  return new Set<number>(value);
+}
+
 function pickRandomItem<T>(items: readonly T[]): T {
   const item = items[randomInt(0, items.length - 1)];
 
@@ -114,18 +135,41 @@ function pickRandomItem<T>(items: readonly T[]): T {
   return item;
 }
 
+function filterOutIds<T extends { id: number }>(
+  items: readonly T[],
+  excluded: ReadonlySet<number>,
+): T[] {
+  if (excluded.size === 0) {
+    return [...items];
+  }
+
+  return items.filter((item) => !excluded.has(item.id));
+}
+
 function pickRandomCandidate<T extends { id: number }>(
   items: readonly T[],
-  excludeIds: readonly number[],
+  softExcludeIds: ReadonlySet<number>,
+  hardExcludeIds: ReadonlySet<number>,
   shuffleFirst: boolean,
 ): T {
-  const preferredItems =
-    excludeIds.length > 0
-      ? items.filter((item) => !excludeIds.includes(item.id))
-      : [...items];
+  const withoutHardExclude = filterOutIds(items, hardExcludeIds);
 
-  const pool =
-    preferredItems.length > 0 ? preferredItems : [...items];
+  if (withoutHardExclude.length === 0) {
+    if (items.length > 0 && hardExcludeIds.size > 0) {
+      throw new RecommendationServiceError(
+        "You already marked all found titles as watched.",
+        { code: "ALL_WATCHED" },
+      );
+    }
+
+    throw new RecommendationServiceError(
+      "Unable to pick a recommendation from an empty list.",
+      { code: "EMPTY_RESULTS" },
+    );
+  }
+
+  const preferred = filterOutIds(withoutHardExclude, softExcludeIds);
+  const pool = preferred.length > 0 ? preferred : withoutHardExclude;
 
   return pickRandomItem(shuffleFirst ? shuffleItems(pool) : pool);
 }
@@ -137,7 +181,7 @@ function filterValidItems<T>(
   return items.filter(isValid);
 }
 
-async function fetchValidCandidates<T>(
+async function fetchValidCandidates<T extends { id: number }>(
   fetchPage: (page: number) => Promise<TmdbPaginatedResponse<T>>,
   isValid: (item: T) => boolean,
   options: {
@@ -145,6 +189,8 @@ async function fetchValidCandidates<T>(
     maxAttempts: number;
     collectMultiplePages: boolean;
     maxCandidates: number;
+    hardExcludeIds: ReadonlySet<number>;
+    searchMode: RecommendationSearchMode;
   },
 ): Promise<T[]> {
   const firstPage = await fetchPage(1);
@@ -160,6 +206,51 @@ async function fetchValidCandidates<T>(
     1,
     Math.min(firstPage.totalPages, options.maxPages),
   );
+
+  if (options.searchMode === "expand") {
+    const collected: T[] = [];
+    const seenIds = new Set<number>();
+
+    for (let pageNumber = 1; pageNumber <= maxPage; pageNumber += 1) {
+      const page = pageNumber === 1 ? firstPage : await fetchPage(pageNumber);
+      const validItems = filterOutIds(
+        filterValidItems(page.results, isValid),
+        options.hardExcludeIds,
+      );
+
+      for (const item of validItems) {
+        if (seenIds.has(item.id)) {
+          continue;
+        }
+
+        seenIds.add(item.id);
+        collected.push(item);
+
+        if (collected.length >= options.maxCandidates) {
+          return collected;
+        }
+      }
+    }
+
+    if (collected.length > 0) {
+      return collected;
+    }
+
+    const hadAnyValid = filterValidItems(firstPage.results, isValid).length > 0;
+
+    if (hadAnyValid && options.hardExcludeIds.size > 0) {
+      throw new RecommendationServiceError(
+        "You already marked all found titles as watched.",
+        { code: "ALL_WATCHED" },
+      );
+    }
+
+    throw new RecommendationServiceError(
+      "No valid titles found with title and poster for the selected filters.",
+      { code: "EMPTY_RESULTS" },
+    );
+  }
+
   const attemptedPages = new Set<number>();
   const collected: T[] = [];
 
@@ -180,10 +271,20 @@ async function fetchValidCandidates<T>(
     }
 
     if (!options.collectMultiplePages) {
-      return validItems;
+      const available = filterOutIds(validItems, options.hardExcludeIds);
+
+      if (available.length > 0) {
+        return available;
+      }
+
+      continue;
     }
 
     for (const item of validItems) {
+      if (options.hardExcludeIds.has(item.id)) {
+        continue;
+      }
+
       collected.push(item);
 
       if (collected.length >= options.maxCandidates) {
@@ -196,10 +297,22 @@ async function fetchValidCandidates<T>(
     return collected;
   }
 
-  const fallbackValidItems = filterValidItems(firstPage.results, isValid);
+  const fallbackValidItems = filterOutIds(
+    filterValidItems(firstPage.results, isValid),
+    options.hardExcludeIds,
+  );
 
   if (fallbackValidItems.length > 0) {
     return fallbackValidItems;
+  }
+
+  const hadAnyValid = filterValidItems(firstPage.results, isValid).length > 0;
+
+  if (hadAnyValid && options.hardExcludeIds.size > 0) {
+    throw new RecommendationServiceError(
+      "You already marked all found titles as watched.",
+      { code: "ALL_WATCHED" },
+    );
   }
 
   throw new RecommendationServiceError(
@@ -280,11 +393,16 @@ export async function getRandomRecommendation(
   const platformId = resolvePlatformId(input.platform);
   const contentTypeId = resolveContentTypeId(input.type);
   const watchProviderIds = TMDB_WATCH_PROVIDER_IDS[platformId];
-  const excludeIds = input.excludeIds ?? [];
+  const softExcludeIds = toIdSet(input.excludeIds);
   const signal = input.signal;
   const genre = input.genre;
   const surpriseMode = isSurpriseGenre(genre);
   const genreFilter = resolveGenreFilter(genre);
+  const searchMode = input.searchMode ?? "random";
+  const excludeWatched =
+    input.excludeWatched === true && input.allowWatchedOverride !== true;
+  const watchedIds = toIdSet(input.watchedIds);
+  const hardExcludeIds = excludeWatched ? watchedIds : new Set<number>();
 
   if (!surpriseMode && genre.contentType !== contentTypeId) {
     throw new RecommendationServiceError(
@@ -293,19 +411,33 @@ export async function getRandomRecommendation(
     );
   }
 
-  const fetchOptions = surpriseMode
-    ? {
-        maxPages: SURPRISE_MAX_RANDOM_PAGES,
-        maxAttempts: SURPRISE_MAX_PAGE_ATTEMPTS,
-        collectMultiplePages: true,
-        maxCandidates: SURPRISE_MAX_CANDIDATES,
-      }
-    : {
-        maxPages: MAX_RANDOM_PAGES,
-        maxAttempts: MAX_PAGE_ATTEMPTS,
-        collectMultiplePages: false,
-        maxCandidates: 20,
-      };
+  const fetchOptions =
+    searchMode === "expand"
+      ? {
+          maxPages: EXPAND_MAX_PAGES,
+          maxAttempts: EXPAND_MAX_PAGES,
+          collectMultiplePages: true,
+          maxCandidates: EXPAND_MAX_CANDIDATES,
+          hardExcludeIds,
+          searchMode,
+        }
+      : surpriseMode
+        ? {
+            maxPages: SURPRISE_MAX_RANDOM_PAGES,
+            maxAttempts: SURPRISE_MAX_PAGE_ATTEMPTS,
+            collectMultiplePages: true,
+            maxCandidates: SURPRISE_MAX_CANDIDATES,
+            hardExcludeIds,
+            searchMode,
+          }
+        : {
+            maxPages: MAX_RANDOM_PAGES,
+            maxAttempts: MAX_PAGE_ATTEMPTS,
+            collectMultiplePages: false,
+            maxCandidates: 20,
+            hardExcludeIds,
+            searchMode,
+          };
 
   try {
     if (contentTypeId === "movie") {
@@ -323,7 +455,12 @@ export async function getRandomRecommendation(
       );
 
       return mapMovieResult(
-        pickRandomCandidate(candidates, excludeIds, surpriseMode),
+        pickRandomCandidate(
+          candidates,
+          softExcludeIds,
+          hardExcludeIds,
+          surpriseMode || searchMode === "expand",
+        ),
         platformId,
         genre,
       );
@@ -343,7 +480,12 @@ export async function getRandomRecommendation(
     );
 
     return mapTVShowResult(
-      pickRandomCandidate(candidates, excludeIds, surpriseMode),
+      pickRandomCandidate(
+        candidates,
+        softExcludeIds,
+        hardExcludeIds,
+        surpriseMode || searchMode === "expand",
+      ),
       platformId,
       genre,
     );

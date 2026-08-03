@@ -22,12 +22,16 @@ export interface WatchedItem {
 export interface FutureRecommendationPreferences {
   excludeWatched: boolean;
   preferHighUserRatings: boolean;
+  hideLowRated: boolean;
+  preferFavoriteGenres: boolean;
 }
 
 export const DEFAULT_RECOMMENDATION_PREFERENCES: FutureRecommendationPreferences =
   {
-    excludeWatched: false,
+    excludeWatched: true,
     preferHighUserRatings: false,
+    hideLowRated: false,
+    preferFavoriteGenres: false,
   };
 
 export function buildContentKey(type: ContentTypeId, id: number): string {

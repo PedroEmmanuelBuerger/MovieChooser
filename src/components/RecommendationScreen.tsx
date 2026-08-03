@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { BackButton } from "@/components/BackButton";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { WatchedSuccessToast } from "@/components/WatchedSuccessToast";
 import { useLibrary } from "@/hooks/useLibrary";
 import { useRecommendation } from "@/hooks/useRecommendation";
+import { useSettingsContext } from "@/hooks/useSettingsContext";
 import { EASE_OUT_EXPO } from "@/lib/motion";
 import { isSurpriseGenre, type GenreSelection } from "@/types/genre";
 import type { ContentTypeOption } from "@/types/content-type";
@@ -26,13 +27,38 @@ export function RecommendationScreen({
 }: RecommendationScreenProps) {
   const reduceMotion = useReducedMotion();
   const { history, watched } = useLibrary();
+  const { settings } = useSettingsContext();
   const { recordRecommendation } = history;
-  const { loading, error, result, isSurpriseMode, shuffle, retry } =
-    useRecommendation({
-      platform,
-      contentType,
-      selectedGenre,
-    });
+
+  const watchedIds = useMemo(() => {
+    const ids = new Set<number>();
+
+    for (const item of watched.items) {
+      if (item.type === contentType.id) {
+        ids.add(item.id);
+      }
+    }
+
+    return ids;
+  }, [watched.items, contentType.id]);
+
+  const {
+    loading,
+    error,
+    result,
+    isSurpriseMode,
+    isAllWatched,
+    shuffle,
+    retry,
+    searchMoreOptions,
+    allowWatchedOnce,
+  } = useRecommendation({
+    platform,
+    contentType,
+    selectedGenre,
+    excludeWatched: settings.excludeWatched,
+    watchedIds,
+  });
 
   const recordedKeyRef = useRef<string | null>(null);
   const [markingWatched, setMarkingWatched] = useState(false);
@@ -68,7 +94,9 @@ export function RecommendationScreen({
       ? "Buscando sua recomendação"
       : result
         ? "Pronto para assistir"
-        : "Não encontramos um título";
+        : isAllWatched
+          ? "Tudo já assistido"
+          : "Não encontramos um título";
 
   async function handleMarkWatched() {
     if (!result) {
@@ -118,6 +146,7 @@ export function RecommendationScreen({
         isWatched={
           result ? watched.isWatched(result.type, result.id) : false
         }
+        isAllWatched={isAllWatched}
         markingWatched={markingWatched}
         loading={loading}
         error={error}
@@ -126,6 +155,12 @@ export function RecommendationScreen({
         }}
         onRetry={() => {
           void retry();
+        }}
+        onSearchMore={() => {
+          void searchMoreOptions();
+        }}
+        onAllowWatched={() => {
+          void allowWatchedOnce();
         }}
         onChangeFilters={onBack}
         onMarkWatched={() => {

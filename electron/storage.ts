@@ -39,18 +39,28 @@ export interface WatchedItem {
   watchedAt: string;
 }
 
+interface AppSettings {
+  excludeWatched: boolean;
+}
+
 interface StoreSchema {
   recommendationHistory: HistoryItem[];
   watchedItems: WatchedItem[];
+  settings: AppSettings;
 }
 
 const MAX_HISTORY_ITEMS = 500;
+
+const DEFAULT_SETTINGS: AppSettings = {
+  excludeWatched: true,
+};
 
 const store = new Store<StoreSchema>({
   name: "moviechooser-data",
   defaults: {
     recommendationHistory: [],
     watchedItems: [],
+    settings: DEFAULT_SETTINGS,
   },
 });
 
@@ -122,6 +132,23 @@ function updateUserRating(
   return setWatched(items);
 }
 
+function getSettings(): AppSettings {
+  const stored = store.get("settings");
+  return {
+    ...DEFAULT_SETTINGS,
+    ...stored,
+  };
+}
+
+function updateSettings(partial: Partial<AppSettings>): AppSettings {
+  const next = {
+    ...getSettings(),
+    ...partial,
+  };
+  store.set("settings", next);
+  return next;
+}
+
 export function registerStorageIpc(): void {
   ipcMain.handle("storage:get-history", () => getHistory());
   ipcMain.handle("storage:add-history", (_event, item: HistoryItem) =>
@@ -137,5 +164,10 @@ export function registerStorageIpc(): void {
       _event,
       payload: { type: ContentTypeId; id: number; userRating: UserRating },
     ) => updateUserRating(payload.type, payload.id, payload.userRating),
+  );
+  ipcMain.handle("storage:get-settings", () => getSettings());
+  ipcMain.handle(
+    "storage:update-settings",
+    (_event, partial: Partial<AppSettings>) => updateSettings(partial),
   );
 }
