@@ -2,7 +2,11 @@ import { motion } from "framer-motion";
 import { Clapperboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function WelcomeScreen() {
+interface WelcomeScreenProps {
+  onStart: () => void;
+}
+
+export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-16 text-center">
       <motion.div
@@ -35,7 +39,7 @@ export function WelcomeScreen() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.4 }}
         >
-          <Button size="lg" type="button">
+          <Button size="lg" type="button" onClick={onStart}>
             <Clapperboard aria-hidden />
             Start choosing
           </Button>
