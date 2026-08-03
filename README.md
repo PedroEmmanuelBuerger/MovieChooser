@@ -4,7 +4,7 @@ Aplicativo desktop Windows que recomenda filmes e séries/animes disponíveis em
 
 ## Requisitos
 
-- Node.js 18.19+
+- Node.js 20+
 
 ## Stack
 
@@ -12,6 +12,10 @@ Aplicativo desktop Windows que recomenda filmes e séries/animes disponíveis em
 - React
 - TypeScript
 - Vite
+- TailwindCSS
+- shadcn/ui
+- Framer Motion
+- Lucide React
 
 ## Scripts
 

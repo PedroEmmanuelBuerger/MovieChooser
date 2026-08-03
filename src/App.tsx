@@ -1,3 +1,5 @@
+import { WelcomeScreen } from "@/components/WelcomeScreen";
+
 export function App() {
-  return null;
+  return <WelcomeScreen />;
 }
