@@ -1,4 +1,4 @@
-import { CheckCircle2, Star, ThumbsDown } from "lucide-react";
+import { CheckCircle2, Clock, Star, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getContentTypeLabel } from "@/types/content-type";
 import type { SearchMediaResult } from "@/types/media-search";
@@ -12,6 +12,21 @@ interface MediaResultCardProps {
   onOpenDetails: () => void;
   onMarkWatched: () => void;
   onDislike: () => void;
+}
+
+function formatRuntime(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+
+  if (hours <= 0) {
+    return `${String(rest)} min`;
+  }
+
+  if (rest === 0) {
+    return `${String(hours)} h`;
+  }
+
+  return `${String(hours)} h ${String(rest)} min`;
 }
 
 export function MediaResultCard({
@@ -63,6 +78,13 @@ export function MediaResultCard({
             </span>
           ))}
         </div>
+
+        {media.type === "movie" && media.runtime ? (
+          <p className="mt-1.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="size-3" aria-hidden />
+            {formatRuntime(media.runtime)}
+          </p>
+        ) : null}
 
         {media.type === "series" && media.seasons ? (
           <p className="mt-1.5 text-xs text-muted-foreground">
