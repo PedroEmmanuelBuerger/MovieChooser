@@ -18,7 +18,7 @@ function getContentTypesForPlatform(
   platform: StreamingPlatform,
 ): readonly ContentTypeOption[] {
   if (platform.id === "crunchyroll") {
-    return CONTENT_TYPE_OPTIONS.filter((option) => option.id === "anime");
+    return CONTENT_TYPE_OPTIONS.filter((option) => option.id !== "series");
   }
 
   return CONTENT_TYPE_OPTIONS;
@@ -51,7 +51,7 @@ export function TypeSelector({
         </h1>
         <p className="mt-3 max-w-lg text-base text-muted-foreground sm:text-lg">
           {selectedPlatform.id === "crunchyroll"
-            ? "Na Crunchyroll, o randomizador foca em animes."
+            ? "Na Crunchyroll, escolha entre filme ou anime."
             : "Escolha o tipo de conteúdo para receber uma recomendação sob medida."}
         </p>
       </motion.header>
@@ -59,7 +59,7 @@ export function TypeSelector({
       <motion.div
         className={cn(
           "grid grid-cols-1 gap-4",
-          options.length === 1 ? "sm:max-w-md sm:grid-cols-1" : "sm:grid-cols-3",
+          options.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3",
         )}
         initial={reduceMotion ? false : "hidden"}
         animate="visible"
