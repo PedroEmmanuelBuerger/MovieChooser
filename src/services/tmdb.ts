@@ -403,3 +403,118 @@ export async function getTVShowDetails(
     rethrowOrWrap(error);
   }
 }
+
+interface TmdbSearchMovieDto {
+  id: number;
+  title: string;
+  original_title: string;
+  overview: string;
+  poster_path: string | null;
+  release_date: string;
+  vote_average: number;
+  genre_ids: number[];
+}
+
+interface TmdbCreditsDto {
+  cast: Array<{ id: number; name: string; order: number }>;
+  crew: Array<{ id: number; name: string; job: string }>;
+}
+
+interface TmdbKeywordsDto {
+  keywords: Array<{ id: number; name: string }>;
+}
+
+export async function searchMovies(
+  query: string,
+  options?: { page?: number; signal?: AbortSignal; language?: string },
+): Promise<TmdbPaginatedResponse<Movie & { originalTitle: string }>> {
+  try {
+    const { data } = await tmdbClient.get<TmdbPaginatedDto<TmdbSearchMovieDto>>(
+      "/search/movie",
+      {
+        ...(options?.signal ? { signal: options.signal } : {}),
+        params: {
+          query,
+          page: options?.page ?? 1,
+          include_adult: false,
+          ...(options?.language ? { language: options.language } : {}),
+        },
+      },
+    );
+
+    return {
+      page: data.page,
+      totalPages: data.total_pages,
+      totalResults: data.total_results,
+      results: data.results.map((item) => ({
+        ...mapMovie({
+          id: item.id,
+          title: item.title,
+          overview: item.overview,
+          poster_path: item.poster_path,
+          backdrop_path: null,
+          release_date: item.release_date,
+          vote_average: item.vote_average,
+          vote_count: 0,
+          popularity: 0,
+          genre_ids: item.genre_ids,
+          original_language: "",
+          adult: false,
+        }),
+        originalTitle: item.original_title,
+      })),
+    };
+  } catch (error) {
+    rethrowOrWrap(error);
+  }
+}
+
+export async function getMovieCredits(
+  movieId: number,
+  signal?: AbortSignal,
+): Promise<{
+  cast: Array<{ id: number; name: string }>;
+  directors: Array<{ id: number; name: string; job: string }>;
+}> {
+  try {
+    const { data } = await tmdbClient.get<TmdbCreditsDto>(
+      `/movie/${String(movieId)}/credits`,
+      {
+        ...(signal ? { signal } : {}),
+      },
+    );
+
+    return {
+      cast: data.cast
+        .slice(0, 8)
+        .map((person) => ({ id: person.id, name: person.name })),
+      directors: data.crew
+        .filter((person) => person.job === "Director")
+        .map((person) => ({
+          id: person.id,
+          name: person.name,
+          job: person.job,
+        })),
+    };
+  } catch (error) {
+    rethrowOrWrap(error);
+  }
+}
+
+export async function getMovieKeywords(
+  movieId: number,
+  signal?: AbortSignal,
+): Promise<string[]> {
+  try {
+    const { data } = await tmdbClient.get<TmdbKeywordsDto>(
+      `/movie/${String(movieId)}/keywords`,
+      {
+        ...(signal ? { signal } : {}),
+      },
+    );
+
+    return data.keywords.map((keyword) => keyword.name);
+  } catch (error) {
+    rethrowOrWrap(error);
+  }
+}

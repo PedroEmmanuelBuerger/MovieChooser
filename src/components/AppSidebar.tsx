@@ -2,16 +2,21 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   CheckCircle2,
   Clapperboard,
+  Dices,
   History,
-  Home,
+  Search,
   Settings,
+  Sparkles,
   UserRound,
+  type LucideIcon,
 } from "lucide-react";
 import { EASE_OUT_EXPO } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export type AppSection =
   | "discover"
+  | "search"
+  | "smart"
   | "history"
   | "watched"
   | "profile"
@@ -25,9 +30,11 @@ interface AppSidebarProps {
 const NAV_ITEMS: {
   id: AppSection;
   label: string;
-  icon: typeof Home;
+  icon: LucideIcon;
 }[] = [
-  { id: "discover", label: "Descobrir", icon: Home },
+  { id: "discover", label: "Randomizador", icon: Dices },
+  { id: "search", label: "Pesquisar Filmes", icon: Search },
+  { id: "smart", label: "Recomendações", icon: Sparkles },
   { id: "history", label: "Histórico", icon: History },
   { id: "watched", label: "Assistidos", icon: CheckCircle2 },
   { id: "profile", label: "Perfil", icon: UserRound },
@@ -51,7 +58,10 @@ export function AppSidebar({ activeSection, onNavigate }: AppSidebarProps) {
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col items-stretch gap-1" aria-label="Navegação principal">
+      <nav
+        className="flex flex-1 flex-col items-stretch gap-1 overflow-y-auto"
+        aria-label="Navegação principal"
+      >
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = activeSection === item.id;

@@ -16,11 +16,13 @@ Aplicativo desktop Windows que recomenda filmes e séries/animes disponíveis em
 
 Sidebar fixa à esquerda:
 
-- **Descobrir** — fluxo de recomendação
+- **Randomizador** — fluxo de recomendação por plataforma/tipo/gênero
+- **Pesquisar Filmes** — busca manual na TMDB, marcar assistido e rejeitar
+- **Recomendações** — sugestões locais por notas e preferências
 - **Histórico** — recomendações recebidas (abas Filmes / Séries e Animes)
 - **Assistidos** — biblioteca local com nota do usuário
 - **Perfil** — estatísticas, insights, rankings e conquistas
-- **Configurações** — preferências de recomendação
+- **Configurações** — exclusão de assistidos e “considerar preferências”
 
 Os dados ficam neste dispositivo (sem login), via `electron-store` no processo principal do Electron.
 

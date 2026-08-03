@@ -36,12 +36,35 @@ async function run(): Promise<void> {
   );
 
   assert(
+    typeof initial.considerPreferences === "boolean",
+    "considerPreferences deve ser boolean",
+  );
+
+  const withPrefs = await updateAppSettings({ considerPreferences: true });
+  assert(withPrefs.considerPreferences, "Falha ao ativar preferências");
+
+  const prefsReloaded = await getAppSettings();
+  assert(
+    prefsReloaded.considerPreferences,
+    "considerPreferences não persistiu",
+  );
+
+  await updateAppSettings({ considerPreferences: false });
+
+  assert(
     DEFAULT_APP_SETTINGS.excludeWatched,
     "Padrão deve ser ativado",
+  );
+  assert(
+    !DEFAULT_APP_SETTINGS.considerPreferences,
+    "Padrão de preferências deve ser desativado",
   );
 
   console.log("Settings ok");
   console.log(`excludeWatched: ${String(reloadedEnabled.excludeWatched)}`);
+  console.log(
+    `considerPreferences: ${String(prefsReloaded.considerPreferences)}`,
+  );
 }
 
 void run().catch((error: unknown) => {

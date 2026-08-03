@@ -41,7 +41,23 @@ export interface WatchedItem {
 
 interface AppSettings {
   excludeWatched: boolean;
+  considerPreferences: boolean;
 }
+
+export interface UserPreferences {
+  favoriteGenres: string[];
+  dislikedGenres: string[];
+  favoriteActors: string[];
+  favoriteDirectors: string[];
+}
+
+export interface MovieInteraction {
+  movieId: number;
+  action: "WATCHED" | "RATED" | "DISLIKED";
+  date: string;
+  rating?: number;
+}
+
 
 export interface UserProfile {
   id: string;
@@ -79,12 +95,22 @@ interface StoreSchema {
   unlockedAchievements: UnlockedAchievement[];
   statsSnapshot: PersistedStatsSnapshot | null;
   watchTimeCache: WatchTimeCache;
+  userPreferences: UserPreferences;
+  movieInteractions: MovieInteraction[];
 }
 
 const MAX_HISTORY_ITEMS = 500;
 
 const DEFAULT_SETTINGS: AppSettings = {
   excludeWatched: true,
+  considerPreferences: false,
+};
+
+const DEFAULT_USER_PREFERENCES: UserPreferences = {
+  favoriteGenres: [],
+  dislikedGenres: [],
+  favoriteActors: [],
+  favoriteDirectors: [],
 };
 
 const store = new Store<StoreSchema>({
@@ -97,6 +123,8 @@ const store = new Store<StoreSchema>({
     unlockedAchievements: [],
     statsSnapshot: null,
     watchTimeCache: {},
+    userPreferences: DEFAULT_USER_PREFERENCES,
+    movieInteractions: [],
   },
 });
 
@@ -283,6 +311,33 @@ function saveWatchTimeCache(cache: WatchTimeCache): WatchTimeCache {
   return cache;
 }
 
+function getUserPreferences(): UserPreferences {
+  return {
+    ...DEFAULT_USER_PREFERENCES,
+    ...store.get("userPreferences"),
+  };
+}
+
+function saveUserPreferences(preferences: UserPreferences): UserPreferences {
+  const next = {
+    ...DEFAULT_USER_PREFERENCES,
+    ...preferences,
+  };
+  store.set("userPreferences", next);
+  return next;
+}
+
+function getMovieInteractions(): MovieInteraction[] {
+  return store.get("movieInteractions");
+}
+
+function saveMovieInteractions(
+  items: MovieInteraction[],
+): MovieInteraction[] {
+  store.set("movieInteractions", items.slice(0, 1000));
+  return store.get("movieInteractions");
+}
+
 export function registerStorageIpc(): void {
   ipcMain.handle("storage:get-history", () => getHistory());
   ipcMain.handle("storage:add-history", (_event, item: HistoryItem) =>
@@ -333,5 +388,15 @@ export function registerStorageIpc(): void {
   ipcMain.handle(
     "storage:save-watch-time-cache",
     (_event, cache: WatchTimeCache) => saveWatchTimeCache(cache),
+  );
+  ipcMain.handle("storage:get-preferences", () => getUserPreferences());
+  ipcMain.handle(
+    "storage:save-preferences",
+    (_event, preferences: UserPreferences) => saveUserPreferences(preferences),
+  );
+  ipcMain.handle("storage:get-interactions", () => getMovieInteractions());
+  ipcMain.handle(
+    "storage:save-interactions",
+    (_event, items: MovieInteraction[]) => saveMovieInteractions(items),
   );
 }

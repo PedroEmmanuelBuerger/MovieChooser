@@ -3,9 +3,11 @@ import { useState } from "react";
 import { AppSidebar, type AppSection } from "@/components/AppSidebar";
 import { GenreSelector } from "@/components/GenreSelector";
 import { HistoryScreen } from "@/components/HistoryScreen";
+import { MovieSearchPage } from "@/components/MovieSearchPage";
 import { PlatformSelector } from "@/components/PlatformSelector";
 import { ProfileOnboarding } from "@/components/ProfileOnboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
+import { RecommendationPage } from "@/components/RecommendationPage";
 import { RecommendationScreen } from "@/components/RecommendationScreen";
 import { SettingsScreen } from "@/components/SettingsScreen";
 import { TypeSelector } from "@/components/TypeSelector";
@@ -173,6 +175,8 @@ function AppShell() {
                 }
                 {...(reduceMotion ? {} : { exit: screenFade.exit })}
               >
+                {section === "search" ? <MovieSearchPage /> : null}
+                {section === "smart" ? <RecommendationPage /> : null}
                 {section === "history" ? <HistoryScreen /> : null}
                 {section === "watched" ? <WatchedScreen /> : null}
                 {section === "profile" ? <ProfileScreen /> : null}

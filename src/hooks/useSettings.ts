@@ -13,6 +13,7 @@ interface UseSettingsResult {
   loading: boolean;
   error: string | null;
   setExcludeWatched: (value: boolean) => Promise<void>;
+  setConsiderPreferences: (value: boolean) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -50,14 +51,26 @@ export function useSettings(): UseSettingsResult {
     }
   }, []);
 
+  const setConsiderPreferences = useCallback(async (value: boolean) => {
+    setError(null);
+
+    try {
+      const next = await updateAppSettings({ considerPreferences: value });
+      setSettings(next);
+    } catch {
+      setError("Não foi possível salvar a configuração.");
+    }
+  }, []);
+
   return useMemo(
     () => ({
       settings,
       loading,
       error,
       setExcludeWatched,
+      setConsiderPreferences,
       refresh,
     }),
-    [settings, loading, error, setExcludeWatched, refresh],
+    [settings, loading, error, setExcludeWatched, setConsiderPreferences, refresh],
   );
 }

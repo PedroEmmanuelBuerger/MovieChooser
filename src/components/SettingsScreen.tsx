@@ -6,7 +6,13 @@ import { cn } from "@/lib/utils";
 
 export function SettingsScreen() {
   const reduceMotion = useReducedMotion();
-  const { settings, loading, error, setExcludeWatched } = useSettingsContext();
+  const {
+    settings,
+    loading,
+    error,
+    setExcludeWatched,
+    setConsiderPreferences,
+  } = useSettingsContext();
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10">
@@ -53,31 +59,59 @@ export function SettingsScreen() {
           </div>
         </div>
 
-        <label
-          className={cn(
-            "flex cursor-pointer items-start gap-4 rounded-xl border border-border/80 bg-secondary/30 p-4 transition-colors hover:bg-secondary/50",
-            loading && "pointer-events-none opacity-60",
-          )}
-        >
-          <input
-            type="checkbox"
-            className="mt-1 size-4 accent-[oklch(0.58_0.23_27)]"
-            checked={settings.excludeWatched}
-            disabled={loading}
-            onChange={(event) => {
-              void setExcludeWatched(event.target.checked);
-            }}
-          />
-          <span className="min-w-0">
-            <span className="block font-medium text-foreground">
-              Não recomendar conteúdos já assistidos
+        <div className="space-y-3">
+          <label
+            className={cn(
+              "flex cursor-pointer items-start gap-4 rounded-xl border border-border/80 bg-secondary/30 p-4 transition-colors hover:bg-secondary/50",
+              loading && "pointer-events-none opacity-60",
+            )}
+          >
+            <input
+              type="checkbox"
+              className="mt-1 size-4 accent-[oklch(0.58_0.23_27)]"
+              checked={settings.excludeWatched}
+              disabled={loading}
+              onChange={(event) => {
+                void setExcludeWatched(event.target.checked);
+              }}
+            />
+            <span className="min-w-0">
+              <span className="block font-medium text-foreground">
+                Não recomendar conteúdos já assistidos
+              </span>
+              <span className="mt-1 block text-sm text-muted-foreground">
+                Quando ativado, o MovieChooser irá ignorar filmes, séries e
+                animes marcados como assistidos.
+              </span>
             </span>
-            <span className="mt-1 block text-sm text-muted-foreground">
-              Quando ativado, o MovieChooser irá ignorar filmes, séries e animes
-              marcados como assistidos.
+          </label>
+
+          <label
+            className={cn(
+              "flex cursor-pointer items-start gap-4 rounded-xl border border-border/80 bg-secondary/30 p-4 transition-colors hover:bg-secondary/50",
+              loading && "pointer-events-none opacity-60",
+            )}
+          >
+            <input
+              type="checkbox"
+              className="mt-1 size-4 accent-[oklch(0.58_0.23_27)]"
+              checked={settings.considerPreferences}
+              disabled={loading}
+              onChange={(event) => {
+                void setConsiderPreferences(event.target.checked);
+              }}
+            />
+            <span className="min-w-0">
+              <span className="block font-medium text-foreground">
+                Considerar minhas preferências
+              </span>
+              <span className="mt-1 block text-sm text-muted-foreground">
+                No modo Surpreenda-me, prioriza gêneros favoritos e evita filmes
+                marcados como “Não tenho interesse”.
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
+        </div>
       </motion.section>
     </main>
   );

@@ -2,8 +2,10 @@ import { contextBridge, ipcRenderer } from "electron";
 import type {
   ContentTypeId,
   HistoryItem,
+  MovieInteraction,
   PersistedStatsSnapshot,
   UnlockedAchievement,
+  UserPreferences,
   UserProfile,
   UserRating,
   WatchTimeCache,
@@ -12,6 +14,7 @@ import type {
 
 interface AppSettings {
   excludeWatched: boolean;
+  considerPreferences: boolean;
 }
 
 contextBridge.exposeInMainWorld("electronAPI", {
@@ -62,4 +65,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("storage:get-watch-time-cache"),
   saveWatchTimeCache: (cache: WatchTimeCache): Promise<WatchTimeCache> =>
     ipcRenderer.invoke("storage:save-watch-time-cache", cache),
+  getUserPreferences: (): Promise<UserPreferences> =>
+    ipcRenderer.invoke("storage:get-preferences"),
+  saveUserPreferences: (
+    preferences: UserPreferences,
+  ): Promise<UserPreferences> =>
+    ipcRenderer.invoke("storage:save-preferences", preferences),
+  getMovieInteractions: (): Promise<MovieInteraction[]> =>
+    ipcRenderer.invoke("storage:get-interactions"),
+  saveMovieInteractions: (
+    items: MovieInteraction[],
+  ): Promise<MovieInteraction[]> =>
+    ipcRenderer.invoke("storage:save-interactions", items),
 });

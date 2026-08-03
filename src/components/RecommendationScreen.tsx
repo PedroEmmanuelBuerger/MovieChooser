@@ -3,10 +3,17 @@ import { motion, useReducedMotion } from "framer-motion";
 import { BackButton } from "@/components/BackButton";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { WatchedSuccessToast } from "@/components/WatchedSuccessToast";
+import { MOVIE_GENRES } from "@/data/genres";
 import { useLibrary } from "@/hooks/useLibrary";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { useSettingsContext } from "@/hooks/useSettingsContext";
 import { EASE_OUT_EXPO } from "@/lib/motion";
+import {
+  addMovieInteraction,
+  getDislikedMovieIds,
+  getUserPreferences,
+  rebuildPreferencesFromWatched,
+} from "@/services/preferenceService";
 import { isSurpriseGenre, type GenreSelection } from "@/types/genre";
 import type { ContentTypeOption } from "@/types/content-type";
 import type { StreamingPlatform } from "@/types/platform";
@@ -29,6 +36,8 @@ export function RecommendationScreen({
   const { history, watched } = useLibrary();
   const { settings } = useSettingsContext();
   const { recordRecommendation } = history;
+  const [dislikedIds, setDislikedIds] = useState<Set<number>>(new Set());
+  const [preferredGenreId, setPreferredGenreId] = useState<number | undefined>();
 
   const watchedIds = useMemo(() => {
     const ids = new Set<number>();
@@ -41,6 +50,30 @@ export function RecommendationScreen({
 
     return ids;
   }, [watched.items, contentType.id]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void (async () => {
+      const [disliked, preferences] = await Promise.all([
+        getDislikedMovieIds(),
+        getUserPreferences(),
+      ]);
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      setDislikedIds(disliked);
+      const favorite = preferences.favoriteGenres[0];
+      const match = MOVIE_GENRES.find((genre) => genre.name === favorite);
+      setPreferredGenreId(match?.tmdbId);
+    })();
+
+    return () => {
+      controller.abort();
+    };
+  }, [watched.items]);
 
   const {
     loading,
@@ -58,6 +91,9 @@ export function RecommendationScreen({
     selectedGenre,
     excludeWatched: settings.excludeWatched,
     watchedIds,
+    dislikedIds,
+    ...(preferredGenreId === undefined ? {} : { preferredGenreId }),
+    considerPreferences: settings.considerPreferences,
   });
 
   const recordedKeyRef = useRef<string | null>(null);
@@ -109,6 +145,16 @@ export function RecommendationScreen({
       platform,
       genreName,
     });
+
+    if (result.type === "movie") {
+      await addMovieInteraction({
+        movieId: result.id,
+        action: "WATCHED",
+        date: new Date().toISOString(),
+      });
+      await rebuildPreferencesFromWatched(watched.items);
+    }
+
     setMarkingWatched(false);
 
     if (markResult.item) {
@@ -183,6 +229,15 @@ export function RecommendationScreen({
             toastTypeId.id,
             rating,
           );
+
+          if (toastTypeId.type === "movie") {
+            void addMovieInteraction({
+              movieId: toastTypeId.id,
+              action: "RATED",
+              date: new Date().toISOString(),
+              rating,
+            });
+          }
         }}
         onClose={() => {
           setToastOpen(false);

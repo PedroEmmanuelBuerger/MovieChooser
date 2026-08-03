@@ -12,6 +12,10 @@ import type {
   UnlockedAchievement,
   WatchTimeCache,
 } from "@/types/stats";
+import type {
+  MovieInteraction,
+  UserPreferences,
+} from "@/types/preferences";
 
 export interface MarkWatchedResult {
   items: WatchedItem[];
@@ -44,6 +48,14 @@ export interface ElectronAPI {
   ) => Promise<PersistedStatsSnapshot>;
   getWatchTimeCache: () => Promise<WatchTimeCache>;
   saveWatchTimeCache: (cache: WatchTimeCache) => Promise<WatchTimeCache>;
+  getUserPreferences: () => Promise<UserPreferences>;
+  saveUserPreferences: (
+    preferences: UserPreferences,
+  ) => Promise<UserPreferences>;
+  getMovieInteractions: () => Promise<MovieInteraction[]>;
+  saveMovieInteractions: (
+    items: MovieInteraction[],
+  ) => Promise<MovieInteraction[]>;
 }
 
 export type { CreateProfileInput };

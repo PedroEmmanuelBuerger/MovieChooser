@@ -19,6 +19,9 @@ interface UseRecommendationParams {
   selectedGenre: GenreSelection;
   excludeWatched: boolean;
   watchedIds: ReadonlySet<number>;
+  dislikedIds?: ReadonlySet<number>;
+  preferredGenreId?: number;
+  considerPreferences?: boolean;
 }
 
 interface UseRecommendationResult {
@@ -83,6 +86,9 @@ export function useRecommendation({
   selectedGenre,
   excludeWatched,
   watchedIds,
+  dislikedIds,
+  preferredGenreId,
+  considerPreferences = false,
 }: UseRecommendationParams): UseRecommendationResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,17 +104,30 @@ export function useRecommendation({
   const genreRef = useRef(selectedGenre);
   const excludeWatchedRef = useRef(excludeWatched);
   const watchedIdsRef = useRef(watchedIds);
+  const dislikedIdsRef = useRef(dislikedIds ?? new Set<number>());
+  const preferredGenreIdRef = useRef(preferredGenreId);
+  const considerPreferencesRef = useRef(considerPreferences);
 
   platformRef.current = platform;
   contentTypeRef.current = contentType;
   genreRef.current = selectedGenre;
   excludeWatchedRef.current = excludeWatched;
   watchedIdsRef.current = watchedIds;
+  dislikedIdsRef.current = dislikedIds ?? new Set<number>();
+  preferredGenreIdRef.current = preferredGenreId;
+  considerPreferencesRef.current = considerPreferences;
   resultRef.current = result;
 
   const watchedIdsKey = useMemo(
     () => Array.from(watchedIds).sort((a, b) => a - b).join(","),
     [watchedIds],
+  );
+  const dislikedIdsKey = useMemo(
+    () =>
+      Array.from(dislikedIds ?? [])
+        .sort((a, b) => a - b)
+        .join(","),
+    [dislikedIds],
   );
 
   async function load(options: {
@@ -138,6 +157,11 @@ export function useRecommendation({
       signal: controller.signal,
       excludeWatched: excludeWatchedRef.current,
       watchedIds: watchedIdsRef.current,
+      dislikedIds: dislikedIdsRef.current,
+      considerPreferences: considerPreferencesRef.current,
+      ...(preferredGenreIdRef.current === undefined
+        ? {}
+        : { preferredGenreId: preferredGenreIdRef.current }),
       ...(options.excludeIds.length > 0
         ? { excludeIds: options.excludeIds }
         : {}),
@@ -187,7 +211,7 @@ export function useRecommendation({
     return () => {
       abortRef.current?.abort();
     };
-  }, [platform.id, contentType.id, selectedGenre.id, excludeWatched, watchedIdsKey]);
+  }, [platform.id, contentType.id, selectedGenre.id, excludeWatched, watchedIdsKey, dislikedIdsKey, preferredGenreId, considerPreferences]);
 
   async function shuffle(): Promise<RecommendationResult | null> {
     const currentId = resultRef.current?.id;

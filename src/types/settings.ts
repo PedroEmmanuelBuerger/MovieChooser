@@ -1,5 +1,6 @@
 export interface AppSettings {
   excludeWatched: boolean;
+  considerPreferences: boolean;
 }
 
 export interface FutureAppSettings extends AppSettings {
@@ -10,6 +11,7 @@ export interface FutureAppSettings extends AppSettings {
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   excludeWatched: true,
+  considerPreferences: false,
 };
 
 export const DEFAULT_FUTURE_APP_SETTINGS: FutureAppSettings = {

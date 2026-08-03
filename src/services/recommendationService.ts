@@ -45,6 +45,9 @@ export interface GetRecommendationInput {
   excludeIds?: readonly number[];
   excludeWatched?: boolean;
   watchedIds?: ReadonlySet<number> | readonly number[];
+  dislikedIds?: ReadonlySet<number> | readonly number[];
+  preferredGenreId?: number;
+  considerPreferences?: boolean;
   allowWatchedOverride?: boolean;
   searchMode?: RecommendationSearchMode;
   preferHighUserRatings?: boolean;
@@ -402,7 +405,21 @@ export async function getRandomRecommendation(
   const excludeWatched =
     input.excludeWatched === true && input.allowWatchedOverride !== true;
   const watchedIds = toIdSet(input.watchedIds);
+  const dislikedIds = toIdSet(input.dislikedIds);
   const hardExcludeIds = excludeWatched ? watchedIds : new Set<number>();
+
+  for (const id of dislikedIds) {
+    hardExcludeIds.add(id);
+  }
+
+  const preferGenreFromPreferences =
+    input.considerPreferences === true &&
+    surpriseMode &&
+    input.preferredGenreId !== undefined;
+
+  const effectiveGenreFilter = preferGenreFromPreferences
+    ? input.preferredGenreId
+    : genreFilter;
 
   if (!surpriseMode && genre.contentType !== contentTypeId) {
     throw new RecommendationServiceError(
@@ -447,7 +464,9 @@ export async function getRandomRecommendation(
             watchProviderIds,
             watchRegion: TMDB_WATCH_REGION,
             page: pageNumber,
-            ...(genreFilter === undefined ? {} : { genreId: genreFilter }),
+            ...(effectiveGenreFilter === undefined
+              ? {}
+              : { genreId: effectiveGenreFilter }),
             ...(signal ? { signal } : {}),
           }),
         isValidMovie,
@@ -472,7 +491,9 @@ export async function getRandomRecommendation(
           watchProviderIds,
           watchRegion: TMDB_WATCH_REGION,
           page: pageNumber,
-          ...(genreFilter === undefined ? {} : { genreId: genreFilter }),
+          ...(effectiveGenreFilter === undefined
+            ? {}
+            : { genreId: effectiveGenreFilter }),
           ...(signal ? { signal } : {}),
         }),
       isValidTVShow,
