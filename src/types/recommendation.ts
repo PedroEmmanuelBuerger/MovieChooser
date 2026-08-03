@@ -1,4 +1,5 @@
 import type { ContentTypeId } from "@/types/content-type";
+import type { GenreId } from "@/types/genre";
 import type { PlatformId } from "@/types/platform";
 
 export interface RecommendationResult {
@@ -8,6 +9,8 @@ export interface RecommendationResult {
   poster: string;
   rating: number;
   type: ContentTypeId;
+  genre: string;
+  genreId: GenreId;
   platformId: PlatformId;
   mediaType: "movie" | "tv";
 }

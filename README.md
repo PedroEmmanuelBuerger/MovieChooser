@@ -6,7 +6,8 @@ Aplicativo desktop Windows que recomenda filmes e séries/animes disponíveis em
 
 1. Escolha a plataforma (Netflix, HBO Max, Crunchyroll, Prime Video ou Disney+)
 2. Escolha o tipo (Filme ou Série/Anime)
-3. Receba uma recomendação aleatória com opção de sortear novamente
+3. Escolha exatamente uma categoria (gênero)
+4. Receba uma recomendação aleatória com opção de sortear novamente
 
 ## Requisitos
 
@@ -85,7 +86,7 @@ build/
 
 ## Observações
 
-- A busca usa `discover` da TMDB com `watch_region=BR`
+- A busca usa `discover` da TMDB com `watch_region=BR` e `with_genres`
 - Itens sem título ou poster são ignorados no sorteio
 - O botão “Sortear novamente” evita repetir títulos recentes
 - A chave TMDB é embutida no build do renderer (`VITE_TMDB_API_KEY`) no momento do `npm run build`

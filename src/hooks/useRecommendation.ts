@@ -6,6 +6,7 @@ import {
   type GetRecommendationInput,
 } from "@/services/recommendationService";
 import type { ContentTypeOption } from "@/types/content-type";
+import type { GenreOption } from "@/types/genre";
 import type { StreamingPlatform } from "@/types/platform";
 import type { RecommendationResult } from "@/types/recommendation";
 
@@ -14,6 +15,7 @@ const MAX_EXCLUDE_HISTORY = 12;
 interface UseRecommendationParams {
   platform: StreamingPlatform;
   contentType: ContentTypeOption;
+  selectedGenre: GenreOption;
 }
 
 interface UseRecommendationResult {
@@ -21,6 +23,7 @@ interface UseRecommendationResult {
   error: string | null;
   errorCode: string | null;
   result: RecommendationResult | null;
+  selectedGenre: GenreOption;
   shuffle: () => Promise<RecommendationResult | null>;
   retry: () => Promise<RecommendationResult | null>;
 }
@@ -70,6 +73,7 @@ function isAbortError(error: unknown): boolean {
 export function useRecommendation({
   platform,
   contentType,
+  selectedGenre,
 }: UseRecommendationParams): UseRecommendationResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,9 +86,11 @@ export function useRecommendation({
   const resultRef = useRef<RecommendationResult | null>(null);
   const platformRef = useRef(platform);
   const contentTypeRef = useRef(contentType);
+  const genreRef = useRef(selectedGenre);
 
   platformRef.current = platform;
   contentTypeRef.current = contentType;
+  genreRef.current = selectedGenre;
   resultRef.current = result;
 
   async function load(
@@ -103,6 +109,7 @@ export function useRecommendation({
     const input: GetRecommendationInput = {
       platform: platformRef.current,
       type: contentTypeRef.current,
+      genre: genreRef.current,
       signal: controller.signal,
       ...(excludeIds.length > 0 ? { excludeIds } : {}),
     };
@@ -146,7 +153,7 @@ export function useRecommendation({
     return () => {
       abortRef.current?.abort();
     };
-  }, [platform.id, contentType.id]);
+  }, [platform.id, contentType.id, selectedGenre.id]);
 
   async function shuffle(): Promise<RecommendationResult | null> {
     const currentId = resultRef.current?.id;
@@ -168,6 +175,7 @@ export function useRecommendation({
     error,
     errorCode,
     result,
+    selectedGenre,
     shuffle,
     retry,
   };

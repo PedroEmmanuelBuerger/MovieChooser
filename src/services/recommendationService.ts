@@ -9,6 +9,7 @@ import {
 } from "@/services/tmdb";
 import { AxiosError } from "axios";
 import type { ContentTypeId, ContentTypeOption } from "@/types/content-type";
+import type { GenreOption } from "@/types/genre";
 import type { PlatformId, StreamingPlatform } from "@/types/platform";
 import type { RecommendationResult } from "@/types/recommendation";
 import type { Movie, TmdbPaginatedResponse, TVShow } from "@/types/tmdb";
@@ -30,6 +31,7 @@ export class RecommendationServiceError extends Error {
 export interface GetRecommendationInput {
   platform: StreamingPlatform | PlatformId;
   type: ContentTypeOption | ContentTypeId;
+  genre: GenreOption;
   excludeIds?: readonly number[];
   signal?: AbortSignal;
 }
@@ -55,11 +57,17 @@ function hasText(value: string): boolean {
 }
 
 function isValidMovie(movie: Movie): boolean {
-  return hasText(movie.title) && movie.posterPath !== null && hasText(movie.posterPath);
+  return (
+    hasText(movie.title) &&
+    movie.posterPath !== null &&
+    hasText(movie.posterPath)
+  );
 }
 
 function isValidTVShow(show: TVShow): boolean {
-  return hasText(show.name) && show.posterPath !== null && hasText(show.posterPath);
+  return (
+    hasText(show.name) && show.posterPath !== null && hasText(show.posterPath)
+  );
 }
 
 function randomInt(min: number, max: number): number {
@@ -106,7 +114,7 @@ async function fetchValidCandidates<T>(
 
   if (firstPage.results.length === 0 || firstPage.totalResults === 0) {
     throw new RecommendationServiceError(
-      "No titles found for the selected platform and type.",
+      "No titles found for the selected platform, type and genre.",
       { code: "EMPTY_RESULTS" },
     );
   }
@@ -126,8 +134,7 @@ async function fetchValidCandidates<T>(
 
     attemptedPages.add(pageNumber);
 
-    const page =
-      pageNumber === 1 ? firstPage : await fetchPage(pageNumber);
+    const page = pageNumber === 1 ? firstPage : await fetchPage(pageNumber);
     const validItems = filterValidItems(page.results, isValid);
 
     if (validItems.length > 0) {
@@ -150,6 +157,7 @@ async function fetchValidCandidates<T>(
 function mapMovieResult(
   movie: Movie,
   platformId: PlatformId,
+  genre: GenreOption,
 ): RecommendationResult {
   if (movie.posterPath === null) {
     throw new RecommendationServiceError(
@@ -165,6 +173,8 @@ function mapMovieResult(
     poster: buildPosterUrl(movie.posterPath),
     rating: movie.voteAverage,
     type: "movie",
+    genre: genre.name,
+    genreId: genre.id,
     platformId,
     mediaType: "movie",
   };
@@ -173,6 +183,7 @@ function mapMovieResult(
 function mapTVShowResult(
   show: TVShow,
   platformId: PlatformId,
+  genre: GenreOption,
 ): RecommendationResult {
   if (show.posterPath === null) {
     throw new RecommendationServiceError(
@@ -188,6 +199,8 @@ function mapTVShowResult(
     poster: buildPosterUrl(show.posterPath),
     rating: show.voteAverage,
     type: "series",
+    genre: genre.name,
+    genreId: genre.id,
     platformId,
     mediaType: "tv",
   };
@@ -201,6 +214,14 @@ export async function getRandomRecommendation(
   const watchProviderIds = TMDB_WATCH_PROVIDER_IDS[platformId];
   const excludeIds = input.excludeIds ?? [];
   const signal = input.signal;
+  const genre = input.genre;
+
+  if (genre.contentType !== contentTypeId) {
+    throw new RecommendationServiceError(
+      "Selected genre does not match the content type.",
+      { code: "INVALID_ITEM" },
+    );
+  }
 
   try {
     if (contentTypeId === "movie") {
@@ -210,6 +231,7 @@ export async function getRandomRecommendation(
             watchProviderIds,
             watchRegion: TMDB_WATCH_REGION,
             page: pageNumber,
+            genreId: genre.tmdbId,
             ...(signal ? { signal } : {}),
           }),
         isValidMovie,
@@ -218,6 +240,7 @@ export async function getRandomRecommendation(
       return mapMovieResult(
         pickRandomCandidate(candidates, excludeIds),
         platformId,
+        genre,
       );
     }
 
@@ -227,6 +250,7 @@ export async function getRandomRecommendation(
           watchProviderIds,
           watchRegion: TMDB_WATCH_REGION,
           page: pageNumber,
+          genreId: genre.tmdbId,
           ...(signal ? { signal } : {}),
         }),
       isValidTVShow,
@@ -235,12 +259,10 @@ export async function getRandomRecommendation(
     return mapTVShowResult(
       pickRandomCandidate(candidates, excludeIds),
       platformId,
+      genre,
     );
   } catch (error) {
-    if (
-      error instanceof AxiosError &&
-      error.code === "ERR_CANCELED"
-    ) {
+    if (error instanceof AxiosError && error.code === "ERR_CANCELED") {
       throw error;
     }
 

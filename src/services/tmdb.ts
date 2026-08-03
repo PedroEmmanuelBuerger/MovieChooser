@@ -290,6 +290,7 @@ export interface DiscoverByWatchProviderParams {
   watchProviderIds: string;
   watchRegion: string;
   page?: number;
+  genreId?: number;
   signal?: AbortSignal;
 }
 
@@ -308,6 +309,9 @@ export async function discoverMoviesByWatchProvider(
           with_watch_providers: params.watchProviderIds,
           with_watch_monetization_types: "flatrate",
           "vote_count.gte": 20,
+          ...(params.genreId === undefined
+            ? {}
+            : { with_genres: params.genreId }),
         },
       },
     );
@@ -333,6 +337,9 @@ export async function discoverTVShowsByWatchProvider(
           with_watch_providers: params.watchProviderIds,
           with_watch_monetization_types: "flatrate",
           "vote_count.gte": 20,
+          ...(params.genreId === undefined
+            ? {}
+            : { with_genres: params.genreId }),
         },
       },
     );

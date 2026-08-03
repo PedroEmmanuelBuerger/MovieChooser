@@ -1,14 +1,16 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
+import { GenreSelector } from "@/components/GenreSelector";
 import { PlatformSelector } from "@/components/PlatformSelector";
 import { RecommendationScreen } from "@/components/RecommendationScreen";
 import { TypeSelector } from "@/components/TypeSelector";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { screenFade } from "@/lib/motion";
 import type { ContentTypeOption } from "@/types/content-type";
+import type { GenreOption } from "@/types/genre";
 import type { StreamingPlatform } from "@/types/platform";
 
-type AppStep = "welcome" | "platform" | "type" | "recommendation";
+type AppStep = "welcome" | "platform" | "type" | "genre" | "recommendation";
 
 export function App() {
   const [step, setStep] = useState<AppStep>("welcome");
@@ -17,6 +19,7 @@ export function App() {
   const [selectedType, setSelectedType] = useState<ContentTypeOption | null>(
     null,
   );
+  const [selectedGenre, setSelectedGenre] = useState<GenreOption | null>(null);
   const reduceMotion = useReducedMotion();
 
   let screen = null;
@@ -29,13 +32,34 @@ export function App() {
         }}
       />
     );
-  } else if (step === "recommendation" && selectedPlatform && selectedType) {
+  } else if (
+    step === "recommendation" &&
+    selectedPlatform &&
+    selectedType &&
+    selectedGenre
+  ) {
     screen = (
       <RecommendationScreen
         platform={selectedPlatform}
         contentType={selectedType}
+        selectedGenre={selectedGenre}
+        onBack={() => {
+          setStep("genre");
+        }}
+      />
+    );
+  } else if (step === "genre" && selectedPlatform && selectedType) {
+    screen = (
+      <GenreSelector
+        selectedPlatform={selectedPlatform}
+        selectedType={selectedType}
+        selectedGenre={selectedGenre}
         onBack={() => {
           setStep("type");
+        }}
+        onSelect={(genre) => {
+          setSelectedGenre(genre);
+          setStep("recommendation");
         }}
       />
     );
@@ -49,7 +73,12 @@ export function App() {
         }}
         onSelect={(option) => {
           setSelectedType(option);
-          setStep("recommendation");
+
+          if (selectedType?.id !== option.id) {
+            setSelectedGenre(null);
+          }
+
+          setStep("genre");
         }}
       />
     );
@@ -65,6 +94,7 @@ export function App() {
 
           if (selectedPlatform?.id !== platform.id) {
             setSelectedType(null);
+            setSelectedGenre(null);
           }
 
           setStep("type");

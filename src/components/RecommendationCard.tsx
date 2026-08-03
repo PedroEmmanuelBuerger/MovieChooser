@@ -18,6 +18,7 @@ interface RecommendationCardProps {
   recommendation: RecommendationResult | null;
   platformName: string;
   typeName: string;
+  genreName: string;
   loading: boolean;
   error: string | null;
   onShuffle: () => void;
@@ -46,6 +47,7 @@ function RecommendationCardSkeleton() {
           <div className="flex gap-2">
             <Skeleton className="h-6 w-24" />
             <Skeleton className="h-6 w-20" />
+            <Skeleton className="h-6 w-20" />
           </div>
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-full" />
@@ -62,6 +64,7 @@ export function RecommendationCard({
   recommendation,
   platformName,
   typeName,
+  genreName,
   loading,
   error,
   onShuffle,
@@ -127,6 +130,9 @@ export function RecommendationCard({
                       </span>
                       <span className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
                         {typeName}
+                      </span>
+                      <span className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
+                        {genreName}
                       </span>
                     </div>
                   </CardHeader>

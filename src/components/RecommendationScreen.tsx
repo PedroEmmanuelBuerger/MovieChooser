@@ -4,30 +4,35 @@ import { RecommendationCard } from "@/components/RecommendationCard";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { EASE_OUT_EXPO } from "@/lib/motion";
 import type { ContentTypeOption } from "@/types/content-type";
+import type { GenreOption } from "@/types/genre";
 import type { StreamingPlatform } from "@/types/platform";
 
 interface RecommendationScreenProps {
   platform: StreamingPlatform;
   contentType: ContentTypeOption;
+  selectedGenre: GenreOption;
   onBack: () => void;
 }
 
 export function RecommendationScreen({
   platform,
   contentType,
+  selectedGenre,
   onBack,
 }: RecommendationScreenProps) {
   const reduceMotion = useReducedMotion();
   const { loading, error, result, shuffle, retry } = useRecommendation({
     platform,
     contentType,
+    selectedGenre,
   });
 
-  const headerTitle = loading && !result
-    ? "Buscando sua recomendação"
-    : result
-      ? "Pronto para assistir"
-      : "Não encontramos um título";
+  const headerTitle =
+    loading && !result
+      ? "Buscando sua recomendação"
+      : result
+        ? "Pronto para assistir"
+        : "Não encontramos um título";
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-14">
@@ -51,6 +56,7 @@ export function RecommendationScreen({
         recommendation={result}
         platformName={platform.name}
         typeName={contentType.name}
+        genreName={selectedGenre.name}
         loading={loading}
         error={error}
         onShuffle={() => {
