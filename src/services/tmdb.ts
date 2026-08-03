@@ -1,8 +1,10 @@
 import axios, { AxiosError, type AxiosInstance } from "axios";
 import type {
   Movie,
+  MovieDetails,
   TmdbPaginatedResponse,
   TVShow,
+  TVShowDetails,
 } from "@/types/tmdb";
 
 const DEFAULT_BASE_URL = "https://api.themoviedb.org/3";
@@ -345,6 +347,58 @@ export async function discoverTVShowsByWatchProvider(
     );
 
     return mapPaginated(data, mapTvShow);
+  } catch (error) {
+    rethrowOrWrap(error);
+  }
+}
+
+interface TmdbMovieDetailsDto extends TmdbMovieDto {
+  runtime: number | null;
+}
+
+interface TmdbTvDetailsDto extends TmdbTvShowDto {
+  number_of_episodes: number | null;
+  episode_run_time: number[];
+}
+
+export async function getMovieDetails(
+  movieId: number,
+  signal?: AbortSignal,
+): Promise<MovieDetails> {
+  try {
+    const { data } = await tmdbClient.get<TmdbMovieDetailsDto>(
+      `/movie/${String(movieId)}`,
+      {
+        ...(signal ? { signal } : {}),
+      },
+    );
+
+    return {
+      ...mapMovie(data),
+      runtime: data.runtime,
+    };
+  } catch (error) {
+    rethrowOrWrap(error);
+  }
+}
+
+export async function getTVShowDetails(
+  showId: number,
+  signal?: AbortSignal,
+): Promise<TVShowDetails> {
+  try {
+    const { data } = await tmdbClient.get<TmdbTvDetailsDto>(
+      `/tv/${String(showId)}`,
+      {
+        ...(signal ? { signal } : {}),
+      },
+    );
+
+    return {
+      ...mapTvShow(data),
+      numberOfEpisodes: data.number_of_episodes,
+      episodeRunTime: data.episode_run_time,
+    };
   } catch (error) {
     rethrowOrWrap(error);
   }

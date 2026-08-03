@@ -28,6 +28,15 @@ export interface TVShow {
   originCountry: string[];
 }
 
+export interface MovieDetails extends Movie {
+  runtime: number | null;
+}
+
+export interface TVShowDetails extends TVShow {
+  numberOfEpisodes: number | null;
+  episodeRunTime: number[];
+}
+
 export interface TmdbPaginatedResponse<T> {
   page: number;
   results: T[];

@@ -43,10 +43,42 @@ interface AppSettings {
   excludeWatched: boolean;
 }
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  bio?: string;
+  avatar?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UnlockedAchievement {
+  id: string;
+  unlockedAt: string;
+}
+
+export interface PersistedStatsSnapshot {
+  computedAt: string;
+  totalRecommendations: number;
+  totalWatched: number;
+  watchedMovies: number;
+  watchedSeries: number;
+  declinedRecommendations: number;
+  averageRating: number | null;
+  ratedCount: number;
+  totalWatchMinutes: number;
+}
+
+export type WatchTimeCache = Record<string, number>;
+
 interface StoreSchema {
   recommendationHistory: HistoryItem[];
   watchedItems: WatchedItem[];
   settings: AppSettings;
+  userProfile: UserProfile | null;
+  unlockedAchievements: UnlockedAchievement[];
+  statsSnapshot: PersistedStatsSnapshot | null;
+  watchTimeCache: WatchTimeCache;
 }
 
 const MAX_HISTORY_ITEMS = 500;
@@ -61,6 +93,10 @@ const store = new Store<StoreSchema>({
     recommendationHistory: [],
     watchedItems: [],
     settings: DEFAULT_SETTINGS,
+    userProfile: null,
+    unlockedAchievements: [],
+    statsSnapshot: null,
+    watchTimeCache: {},
   },
 });
 
@@ -149,6 +185,104 @@ function updateSettings(partial: Partial<AppSettings>): AppSettings {
   return next;
 }
 
+function normalizeProfile(profile: UserProfile): UserProfile {
+  const next: UserProfile = {
+    id: profile.id,
+    name: profile.name.trim(),
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt,
+  };
+
+  if (profile.bio && profile.bio.trim().length > 0) {
+    next.bio = profile.bio.trim();
+  }
+
+  if (profile.avatar && profile.avatar.trim().length > 0) {
+    next.avatar = profile.avatar;
+  }
+
+  return next;
+}
+
+function getUserProfile(): UserProfile | null {
+  const profile = store.get("userProfile");
+  return profile ? normalizeProfile(profile) : null;
+}
+
+function saveUserProfile(profile: UserProfile): UserProfile {
+  const next = normalizeProfile(profile);
+  store.set("userProfile", next);
+  return next;
+}
+
+function updateUserProfile(
+  partial: {
+    name?: string;
+    bio?: string | null;
+    avatar?: string | null;
+  },
+): UserProfile {
+  const current = getUserProfile();
+
+  if (!current) {
+    throw new Error("Profile not found");
+  }
+
+  const next: UserProfile = {
+    ...current,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (partial.name !== undefined) {
+    next.name = partial.name.trim();
+  }
+
+  if (partial.bio === null) {
+    delete next.bio;
+  } else if (partial.bio !== undefined) {
+    next.bio = partial.bio.trim();
+  }
+
+  if (partial.avatar === null) {
+    delete next.avatar;
+  } else if (partial.avatar !== undefined) {
+    next.avatar = partial.avatar;
+  }
+
+  return saveUserProfile(next);
+}
+
+function getUnlockedAchievements(): UnlockedAchievement[] {
+  return store.get("unlockedAchievements");
+}
+
+function saveUnlockedAchievements(
+  items: UnlockedAchievement[],
+): UnlockedAchievement[] {
+  store.set("unlockedAchievements", items);
+  return items;
+}
+
+function getStatsSnapshot(): PersistedStatsSnapshot | null {
+  return store.get("statsSnapshot");
+}
+
+function saveStatsSnapshot(
+  snapshot: PersistedStatsSnapshot,
+): PersistedStatsSnapshot {
+  store.set("statsSnapshot", snapshot);
+  return snapshot;
+}
+
+function getWatchTimeCache(): WatchTimeCache {
+  return store.get("watchTimeCache");
+}
+
+function saveWatchTimeCache(cache: WatchTimeCache): WatchTimeCache {
+  store.set("watchTimeCache", cache);
+  return cache;
+}
+
 export function registerStorageIpc(): void {
   ipcMain.handle("storage:get-history", () => getHistory());
   ipcMain.handle("storage:add-history", (_event, item: HistoryItem) =>
@@ -169,5 +303,35 @@ export function registerStorageIpc(): void {
   ipcMain.handle(
     "storage:update-settings",
     (_event, partial: Partial<AppSettings>) => updateSettings(partial),
+  );
+  ipcMain.handle("storage:get-profile", () => getUserProfile());
+  ipcMain.handle("storage:save-profile", (_event, profile: UserProfile) =>
+    saveUserProfile(profile),
+  );
+  ipcMain.handle(
+    "storage:update-profile",
+    (
+      _event,
+      partial: {
+        name?: string;
+        bio?: string | null;
+        avatar?: string | null;
+      },
+    ) => updateUserProfile(partial),
+  );
+  ipcMain.handle("storage:get-achievements", () => getUnlockedAchievements());
+  ipcMain.handle(
+    "storage:save-achievements",
+    (_event, items: UnlockedAchievement[]) => saveUnlockedAchievements(items),
+  );
+  ipcMain.handle("storage:get-stats-snapshot", () => getStatsSnapshot());
+  ipcMain.handle(
+    "storage:save-stats-snapshot",
+    (_event, snapshot: PersistedStatsSnapshot) => saveStatsSnapshot(snapshot),
+  );
+  ipcMain.handle("storage:get-watch-time-cache", () => getWatchTimeCache());
+  ipcMain.handle(
+    "storage:save-watch-time-cache",
+    (_event, cache: WatchTimeCache) => saveWatchTimeCache(cache),
   );
 }

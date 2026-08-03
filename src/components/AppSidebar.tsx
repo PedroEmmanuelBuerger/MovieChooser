@@ -5,11 +5,17 @@ import {
   History,
   Home,
   Settings,
+  UserRound,
 } from "lucide-react";
 import { EASE_OUT_EXPO } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-export type AppSection = "discover" | "history" | "watched" | "settings";
+export type AppSection =
+  | "discover"
+  | "history"
+  | "watched"
+  | "profile"
+  | "settings";
 
 interface AppSidebarProps {
   activeSection: AppSection;
@@ -24,6 +30,7 @@ const NAV_ITEMS: {
   { id: "discover", label: "Descobrir", icon: Home },
   { id: "history", label: "Histórico", icon: History },
   { id: "watched", label: "Assistidos", icon: CheckCircle2 },
+  { id: "profile", label: "Perfil", icon: UserRound },
   { id: "settings", label: "Configurações", icon: Settings },
 ];
 

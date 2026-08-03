@@ -4,13 +4,17 @@ import { AppSidebar, type AppSection } from "@/components/AppSidebar";
 import { GenreSelector } from "@/components/GenreSelector";
 import { HistoryScreen } from "@/components/HistoryScreen";
 import { PlatformSelector } from "@/components/PlatformSelector";
+import { ProfileOnboarding } from "@/components/ProfileOnboarding";
+import { ProfileScreen } from "@/components/ProfileScreen";
 import { RecommendationScreen } from "@/components/RecommendationScreen";
 import { SettingsScreen } from "@/components/SettingsScreen";
 import { TypeSelector } from "@/components/TypeSelector";
 import { WatchedScreen } from "@/components/WatchedScreen";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { LibraryProvider } from "@/context/LibraryContext";
+import { ProfileProvider } from "@/context/ProfileContext";
 import { SettingsProvider } from "@/context/SettingsContext";
+import { useProfileContext } from "@/hooks/useProfileContext";
 import { screenFade } from "@/lib/motion";
 import type { ContentTypeOption } from "@/types/content-type";
 import type { GenreSelection } from "@/types/genre";
@@ -127,44 +131,68 @@ function DiscoverFlow() {
   );
 }
 
-export function App() {
+function AppShell() {
   const [section, setSection] = useState<AppSection>("discover");
+  const [onboardingBusy, setOnboardingBusy] = useState(false);
   const reduceMotion = useReducedMotion();
+  const { needsOnboarding, createProfile, loading } = useProfileContext();
 
+  return (
+    <>
+      {!loading && needsOnboarding ? (
+        <ProfileOnboarding
+          submitting={onboardingBusy}
+          onComplete={async (input) => {
+            setOnboardingBusy(true);
+            await createProfile(input);
+            setOnboardingBusy(false);
+          }}
+        />
+      ) : null}
+
+      <div className="flex min-h-screen w-full">
+        <AppSidebar activeSection={section} onNavigate={setSection} />
+
+        <div className="min-h-screen min-w-0 flex-1 overflow-y-auto">
+          <div
+            className={section === "discover" ? "min-h-screen" : "hidden"}
+            aria-hidden={section !== "discover"}
+          >
+            <DiscoverFlow />
+          </div>
+
+          <AnimatePresence mode="wait">
+            {section !== "discover" ? (
+              <motion.div
+                key={section}
+                className="min-h-screen"
+                initial={reduceMotion ? false : screenFade.initial}
+                animate={screenFade.animate}
+                transition={
+                  reduceMotion ? { duration: 0 } : screenFade.transition
+                }
+                {...(reduceMotion ? {} : { exit: screenFade.exit })}
+              >
+                {section === "history" ? <HistoryScreen /> : null}
+                {section === "watched" ? <WatchedScreen /> : null}
+                {section === "profile" ? <ProfileScreen /> : null}
+                {section === "settings" ? <SettingsScreen /> : null}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export function App() {
   return (
     <SettingsProvider>
       <LibraryProvider>
-        <div className="flex min-h-screen w-full">
-          <AppSidebar activeSection={section} onNavigate={setSection} />
-
-          <div className="min-h-screen min-w-0 flex-1 overflow-y-auto">
-            <div
-              className={section === "discover" ? "min-h-screen" : "hidden"}
-              aria-hidden={section !== "discover"}
-            >
-              <DiscoverFlow />
-            </div>
-
-            <AnimatePresence mode="wait">
-              {section !== "discover" ? (
-                <motion.div
-                  key={section}
-                  className="min-h-screen"
-                  initial={reduceMotion ? false : screenFade.initial}
-                  animate={screenFade.animate}
-                  transition={
-                    reduceMotion ? { duration: 0 } : screenFade.transition
-                  }
-                  {...(reduceMotion ? {} : { exit: screenFade.exit })}
-                >
-                  {section === "history" ? <HistoryScreen /> : null}
-                  {section === "watched" ? <WatchedScreen /> : null}
-                  {section === "settings" ? <SettingsScreen /> : null}
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-          </div>
-        </div>
+        <ProfileProvider>
+          <AppShell />
+        </ProfileProvider>
       </LibraryProvider>
     </SettingsProvider>
   );

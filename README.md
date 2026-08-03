@@ -4,12 +4,13 @@ Aplicativo desktop Windows que recomenda filmes e séries/animes disponíveis em
 
 ## Fluxo
 
-1. Escolha a plataforma (Netflix, HBO Max, Crunchyroll, Prime Video ou Disney+)
-2. Escolha o tipo (Filme ou Série/Anime)
-3. Escolha exatamente uma categoria (gênero) ou **Surpreenda-me**
-4. Receba uma recomendação aleatória com opção de sortear novamente
-5. Acompanhe o **Histórico** e marque títulos como **Assistidos** (com nota de 1 a 10)
-6. Em **Configurações**, opcionalmente evite recomendar conteúdos já assistidos
+1. Crie seu perfil local (nome, bio e avatar)
+2. Escolha a plataforma (Netflix, HBO Max, Crunchyroll, Prime Video ou Disney+)
+3. Escolha o tipo (Filme ou Série/Anime)
+4. Escolha exatamente uma categoria (gênero) ou **Surpreenda-me**
+5. Receba uma recomendação aleatória com opção de sortear novamente
+6. Acompanhe o **Histórico**, marque **Assistidos** e veja estatísticas no **Perfil**
+7. Em **Configurações**, opcionalmente evite recomendar conteúdos já assistidos
 
 ## Navegação
 
@@ -18,6 +19,7 @@ Sidebar fixa à esquerda:
 - **Descobrir** — fluxo de recomendação
 - **Histórico** — recomendações recebidas (abas Filmes / Séries e Animes)
 - **Assistidos** — biblioteca local com nota do usuário
+- **Perfil** — estatísticas, insights, rankings e conquistas
 - **Configurações** — preferências de recomendação
 
 Os dados ficam neste dispositivo (sem login), via `electron-store` no processo principal do Electron.
@@ -37,8 +39,9 @@ Os dados ficam neste dispositivo (sem login), via `electron-store` no processo p
 - shadcn/ui
 - Framer Motion
 - Lucide React
+- Recharts
 - Axios + TMDB API
-- electron-store (histórico, assistidos e configurações)
+- electron-store (histórico, assistidos, perfil, configurações e conquistas)
 - electron-builder (instalador Windows)
 
 ## Configuração
@@ -68,12 +71,12 @@ npm run test:tmdb
 npm run test:recommendation
 npm run test:storage
 npm run test:settings
+npm run test:profile
 ```
 
 - `npm run build` — compila TypeScript, Vite e prepara assets Windows
 - `npm run dist` — gera o instalador `MovieChooser-Setup-<versão>.exe` em `release/`
-- `npm run test:storage` — valida histórico, assistidos, nota e anti-duplicação
-- `npm run test:settings` — valida persistência de `excludeWatched`
+- `npm run test:profile` — valida perfil, estatísticas e conquistas
 
 ## Distribuição Windows
 
@@ -92,12 +95,12 @@ npm run dist
 ```text
 src/
   components/   telas e UI (shadcn)
-  context/      LibraryProvider + SettingsProvider
-  data/         plataformas, tipos e providers TMDB
-  hooks/        useRecommendation, useHistory, useWatched, useSettings
-  services/     tmdb, recommendationService, storageService, settingsService
+  context/      LibraryProvider + SettingsProvider + ProfileProvider
+  data/         plataformas, tipos, conquistas e providers TMDB
+  hooks/        useRecommendation, useHistory, useWatched, useSettings, useProfile, useStats
+  services/     tmdb, recommendation, storage, settings, profile, stats
   types/        contratos TypeScript
-  lib/          utils, motion e mensagens de erro
+  lib/          utils, motion, avatar e mensagens de erro
 electron/
   main.ts       janela + IPC
   preload.ts    bridge segura
@@ -116,7 +119,6 @@ build/
 - Cada recomendação exibida entra automaticamente no Histórico
 - Marcar como assistido não remove o item do Histórico e impede duplicatas em Assistidos
 - Por padrão, conteúdos assistidos são excluídos do sorteio (`settings.excludeWatched = true`)
-- Se todos os resultados já foram assistidos, o app oferece buscar mais páginas ou liberar assistidos só naquela tentativa
-- A arquitetura já reserva campos futuros (notas, gêneros favoritos) sem ativá-los ainda
+- O Perfil calcula estatísticas, top gêneros, plataformas, atividade mensal, tempo estimado (runtime TMDB), favoritos, insights e conquistas
 - A chave TMDB é embutida no build do renderer (`VITE_TMDB_API_KEY`) no momento do `npm run build`
 - Use Node 22+ se o Tailwind reportar problemas de binding nativo
