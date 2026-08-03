@@ -45,7 +45,6 @@ export function useRecommendation(): UseRecommendationResult {
       return recommendation;
     } catch (caughtError) {
       setError(resolveErrorMessage(caughtError));
-      setResult(null);
       return null;
     } finally {
       setLoading(false);
