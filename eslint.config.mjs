@@ -6,7 +6,7 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist", "dist-electron", "node_modules", "release"],
+    ignores: ["dist", "dist-electron", "node_modules", "release", "**/*.d.ts"],
   },
   {
     extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
@@ -19,7 +19,11 @@ export default tseslint.config(
       },
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["vite.config.mts", "electron/*.ts"],
+          allowDefaultProject: [
+            "vite.config.mts",
+            "electron/*.ts",
+            "scripts/*.ts",
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
       },
